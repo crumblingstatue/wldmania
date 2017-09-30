@@ -1,0 +1,10 @@
+[package]
+name = "wldtink"
+version = "0.1.0"
+authors = ["Mika Attila <radiantstatue@gmail.com>"]
+
+[dependencies]
+toml = "0.4.5"
+serde_derive = "*"
+serde = "*"
+byteorder = "1.1.0"
