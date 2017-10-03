@@ -43,7 +43,13 @@ fn main() {
             return;
         }
     };
-    let mut world = World::load(&cfg.world.path).unwrap();
+    let mut world = match World::load(&cfg.world.path) {
+        Ok(world) => world,
+        Err(e) => {
+            eprintln!("Failed to load world \"{}\": {}", cfg.world.path, e);
+            return;
+        }
+    };
     println!("World seed: {}", world.seed);
     for chest in &world.chests[..] {
         for item in &chest.items[..] {
