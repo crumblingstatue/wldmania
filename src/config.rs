@@ -7,7 +7,7 @@ use std::collections::HashMap;
 #[derive(Deserialize)]
 pub struct Config {
     pub world: World,
-    pub required_items: Vec<RequiredItem>,
+    #[serde(default)] pub required_items: Vec<RequiredItem>,
     #[serde(default)] pub npc_relocate: HashMap<String, Relocate>,
 }
 
