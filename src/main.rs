@@ -36,7 +36,13 @@ impl<'a> fmt::Display for ChestNameFmt<'a> {
 }
 
 fn main() {
-    let mut cfg = Config::load("wldtink.toml").unwrap();
+    let mut cfg = match Config::load() {
+        Ok(cfg) => cfg,
+        Err(e) => {
+            eprintln!("Failed to load {}: {}", Config::PATH, e);
+            return;
+        }
+    };
     let mut world = World::load(&cfg.world.path).unwrap();
     println!("World seed: {}", world.seed);
     for chest in &world.chests[..] {

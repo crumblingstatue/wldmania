@@ -18,13 +18,14 @@ pub struct Relocate {
 }
 
 impl Config {
-    pub fn load(path: &str) -> Result<Self, Box<Error>> {
-        let mut f = File::open(path)?;
+    pub fn load() -> Result<Self, Box<Error>> {
+        let mut f = File::open(Self::PATH)?;
         let mut text = String::new();
         f.read_to_string(&mut text)?;
         let cfg = toml::from_str(&text)?;
         Ok(cfg)
     }
+    pub const PATH: &'static str = "wldtink.toml";
 }
 
 #[derive(Deserialize)]
