@@ -1,29 +1,20 @@
+extern crate ansi_term;
 extern crate byteorder;
+extern crate clap;
 #[macro_use]
 extern crate serde_derive;
 extern crate toml;
 
 use std::fmt;
-use config::Config;
 use world::World;
+use clap::{App, AppSettings, Arg, SubCommand};
+use std::fs::File;
+use std::io::prelude::*;
+use ansi_term::Colour::{Green, Red};
 
-mod config;
 mod world;
 
-struct NameOrId<'a>(&'a config::RequiredItem);
-
-impl<'a> fmt::Display for NameOrId<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let req = self.0;
-        if req.name.is_empty() {
-            write!(f, "{}", req.id)
-        } else {
-            write!(f, "{}", req.name)
-        }
-    }
-}
-
-struct ChestNameFmt<'a>(&'a str);
+/*struct ChestNameFmt<'a>(&'a str);
 
 impl<'a> fmt::Display for ChestNameFmt<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -33,62 +24,63 @@ impl<'a> fmt::Display for ChestNameFmt<'a> {
             write!(f, "chest \"{}\"", self.0)
         }
     }
-}
+}*/
 
 fn main() {
-    let mut cfg = match Config::load() {
-        Ok(cfg) => cfg,
-        Err(e) => {
-            eprintln!("Failed to load {}: {}", Config::PATH, e);
-            return;
-        }
-    };
-    let mut world = match World::load(&cfg.world.path) {
-        Ok(world) => world,
-        Err(e) => {
-            eprintln!("Failed to load world \"{}\": {}", cfg.world.path, e);
-            return;
-        }
-    };
-    println!("World seed: {}", world.seed);
-    for chest in &world.chests[..] {
-        for item in &chest.items[..] {
-            if let Some(ref item) = *item {
-                for req in &mut cfg.required_items {
-                    if item.id == req.id {
-                        let gps_pos = world.tile_to_gps_pos(chest.x, chest.y);
-                        println!(
-                            "Found {} in {} at {}",
-                            NameOrId(req),
-                            ChestNameFmt(&chest.name),
-                            gps_pos
-                        );
-                        req.times_found += 1;
-                    }
-                }
-            }
-        }
-    }
-    println!("The world does not meet the following requirements: ");
-    for req in cfg.required_items {
-        if req.times_found < req.required_amount {
-            println!(
-                "{} - {}/{}",
-                NameOrId(&req),
-                req.times_found,
-                req.required_amount
-            );
+    let app = App::new("wldmania")
+        .version(env!("CARGO_PKG_VERSION"))
+        .about("Terraria world inspection/manupilation tool")
+        .setting(AppSettings::SubcommandRequiredElseHelp)
+        .subcommand(
+            SubCommand::with_name("itemhunt")
+                .about("Check if world(s) contain the desired items")
+                .arg(
+                    Arg::with_name("req-file")
+                        .index(1)
+                        .required_unless("gen")
+                        .help("TOML file containing the desired items"),
+                )
+                .arg(
+                    Arg::with_name("gen")
+                        .short("g")
+                        .help("Generate a template requirements file.")
+                        .takes_value(true),
+                )
+                .arg(
+                    Arg::with_name("wld-file")
+                        .multiple(true)
+                        .help("Path to a Terraria .wld file.")
+                        .required_unless("gen"),
+                ),
+        );
+
+    let matches = app.get_matches();
+
+    if let Some(submatches) = matches.subcommand_matches("itemhunt") {
+        if let Some(template_cfg_path) = submatches.value_of("gen") {
+            generate_template_cfg(template_cfg_path);
+        } else {
+            let req_path = submatches.value_of("req-file").unwrap();
+            let world_paths = submatches.values_of("wld-file").unwrap();
+            itemhunt(req_path, world_paths);
         }
     }
-    for (k, v) in &cfg.npc_relocate {
+
+    /*for (k, v) in &cfg.npc_relocate {
         relocate_npc(&mut world, k, v);
     }
     if !cfg.npc_relocate.is_empty() {
         world.patch_npcs(&cfg.world.path).unwrap();
-    }
+    }*/
 }
 
-fn relocate_npc(world: &mut World, name: &str, to: &config::Relocate) {
+fn generate_template_cfg(path: &str) {
+    let mut f = File::create(path).unwrap();
+    f.write_all(include_bytes!("../templates/itemhunt.toml"))
+        .unwrap();
+}
+
+/*fn relocate_npc(world: &mut World, name: &str, to: &config::Relocate) {
     for npc in &mut world.npcs {
         if npc.name == name {
             eprintln!("Relocating npc {} to {}, {}", name, to.x, to.y);
@@ -96,4 +88,77 @@ fn relocate_npc(world: &mut World, name: &str, to: &config::Relocate) {
             npc.y = to.y;
         }
     }
+}*/
+
+fn itemhunt<'a, I: Iterator<Item = &'a str>>(cfg_path: &str, world_paths: I) {
+    use std::collections::HashMap;
+
+    #[derive(Deserialize)]
+    struct Item {
+        id: i32,
+        #[serde(default = "item_amount_default")] amount: i32,
+        #[serde(skip)] times_found: i32,
+    }
+    fn item_amount_default() -> i32 {
+        1
+    }
+    struct NameOrId<'a>(&'a str, i32);
+
+    impl<'a> fmt::Display for NameOrId<'a> {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            if self.0.is_empty() {
+                write!(f, "{}", self.1)
+            } else {
+                write!(f, "{}", self.0)
+            }
+        }
+    }
+    let mut f = File::open(cfg_path).unwrap();
+    let mut buf = String::new();
+    f.read_to_string(&mut buf).unwrap();
+    let mut required_items: HashMap<String, Item> = toml::from_str(&buf).unwrap();
+    let mut n_meet_reqs = 0;
+    for world_path in world_paths {
+        let world = match World::load(world_path) {
+            Ok(world) => world,
+            Err(e) => {
+                eprintln!("Failed to load world \"{}\": {}", world_path, e);
+                return;
+            }
+        };
+        println!("{} ({}):", world_path, world.seed);
+        for chest in &world.chests[..] {
+            for item in &chest.items[..] {
+                if let Some(ref item) = *item {
+                    for (_name, req) in &mut required_items {
+                        if item.id == req.id {
+                            req.times_found += 1;
+                        }
+                    }
+                }
+            }
+        }
+        let mut didnt_meet_reqs = false;
+        for (name, req) in &required_items {
+            if req.times_found < req.amount {
+                didnt_meet_reqs = true;
+                let msg = format!(
+                    "{} - {}/{}",
+                    NameOrId(name, req.id),
+                    req.times_found,
+                    req.amount
+                );
+                println!("{}", Red.paint(msg));
+            }
+        }
+        if !didnt_meet_reqs {
+            println!("{}", Green.paint("This world meets all requirements."));
+            n_meet_reqs += 1;
+        }
+        // Reset times_found values
+        for req in required_items.values_mut() {
+            req.times_found = 0;
+        }
+    }
+    println!("{} worlds in total meet the requirements.", n_meet_reqs);
 }

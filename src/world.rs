@@ -1,9 +1,9 @@
 use std::error::Error;
-use byteorder::{ReadBytesExt, WriteBytesExt, LE};
+use byteorder::{ReadBytesExt, /*WriteBytesExt,*/ LE};
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::{self, SeekFrom};
-use std::fmt;
+//use std::fmt;
 
 pub struct World {
     pub chests: Vec<Chest>,
@@ -111,7 +111,7 @@ impl World {
             seed,
         })
     }
-    pub fn tile_to_gps_pos(&self, x: i32, y: i32) -> GpsPos {
+    /*pub fn tile_to_gps_pos(&self, x: i32, y: i32) -> GpsPos {
         let raw_x = x * 2 - self.width;
         let raw_y = self.surface_y * 2.0 - f64::from(y) * 2.0;
         let x_side = if raw_x > 0 { XSide::East } else { XSide::West };
@@ -126,8 +126,8 @@ impl World {
             x_side,
             y_side,
         }
-    }
-    pub fn patch_npcs(&self, file_path: &str) -> Result<(), Box<Error>> {
+    }*/
+    /*pub fn patch_npcs(&self, file_path: &str) -> Result<(), Box<Error>> {
         use std::fs::OpenOptions;
         let mut f = OpenOptions::new().read(true).write(true).open(file_path)?;
         let offsets = read_offsets(&mut f)?;
@@ -136,10 +136,10 @@ impl World {
             write_npc(&mut f, npc)?;
         }
         Ok(())
-    }
+    }*/
 }
 
-pub struct GpsPos {
+/*pub struct GpsPos {
     x_offset: u32,
     y_offset: u32,
     x_side: XSide,
@@ -165,9 +165,9 @@ impl fmt::Display for GpsPos {
             yside
         )
     }
-}
+}*/
 
-pub enum XSide {
+/*pub enum XSide {
     West,
     East,
 }
@@ -175,7 +175,7 @@ pub enum XSide {
 pub enum YSide {
     AboveSurface,
     BelowSurface,
-}
+}*/
 
 const CHEST_MAX_ITEMS: i8 = 40;
 
@@ -207,7 +207,7 @@ fn read_string(f: &mut File) -> io::Result<String> {
     Ok(String::from_utf8_lossy(&buf).into_owned())
 }
 
-fn write_string(f: &mut File, string: &str) -> io::Result<()> {
+/*fn write_string(f: &mut File, string: &str) -> io::Result<()> {
     let len = string.len();
     // Can't bother with that whole encoding bullshit. Just simply write the length value,
     // bail if it's larger than 127.
@@ -215,7 +215,7 @@ fn write_string(f: &mut File, string: &str) -> io::Result<()> {
     f.write_u8(len as u8)?;
     f.write_all(string.as_bytes())?;
     Ok(())
-}
+}*/
 
 fn read_string_len(f: &mut File) -> io::Result<usize> {
     let mut len = 0;
@@ -277,7 +277,7 @@ fn read_npc(f: &mut File) -> io::Result<Option<Npc>> {
     }))
 }
 
-fn write_npc(f: &mut File, npc: &Npc) -> io::Result<()> {
+/*fn write_npc(f: &mut File, npc: &Npc) -> io::Result<()> {
     f.write_u8(1)?;
     f.write_i32::<LE>(npc.sprite)?;
     write_string(f, &npc.name)?;
@@ -287,7 +287,7 @@ fn write_npc(f: &mut File, npc: &Npc) -> io::Result<()> {
     f.write_i32::<LE>(npc.home_x)?;
     f.write_i32::<LE>(npc.home_y)?;
     Ok(())
-}
+}*/
 
 pub struct Npc {
     pub sprite: i32,
