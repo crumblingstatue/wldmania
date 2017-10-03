@@ -25,7 +25,7 @@ impl Config {
         let cfg = toml::from_str(&text)?;
         Ok(cfg)
     }
-    pub const PATH: &'static str = "wldtink.toml";
+    pub const PATH: &'static str = "wldmania.toml";
 }
 
 #[derive(Deserialize)]
