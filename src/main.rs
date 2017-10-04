@@ -52,6 +52,20 @@ fn main() {
                         .help("Path to a Terraria .wld file.")
                         .required_unless("gen"),
                 ),
+        )
+        .subcommand(
+            SubCommand::with_name("find")
+                .about("Find an item in the world")
+                .arg(
+                    Arg::with_name("wld-file")
+                        .required(true)
+                        .help("Path to a Terraria .wld file."),
+                )
+                .arg(
+                    Arg::with_name("item-id")
+                        .required(true)
+                        .help("Id of the item you want to find"),
+                ),
         );
 
     let matches = app.get_matches();
@@ -64,6 +78,11 @@ fn main() {
             let world_paths = submatches.values_of("wld-file").unwrap();
             itemhunt(req_path, world_paths);
         }
+    } else if let Some(submatches) = matches.subcommand_matches("find") {
+        let world_path = submatches.value_of("wld-file").unwrap();
+        let item_id = submatches.value_of("item-id").unwrap();
+        let item_id = item_id.parse::<i32>().unwrap();
+        find_item(world_path, item_id);
     }
 
     /*for (k, v) in &cfg.npc_relocate {
@@ -161,4 +180,24 @@ fn itemhunt<'a, I: Iterator<Item = &'a str>>(cfg_path: &str, world_paths: I) {
         }
     }
     println!("{} worlds in total meet the requirements.", n_meet_reqs);
+}
+
+fn find_item(world_path: &str, id: i32) {
+    let world = match World::load(world_path) {
+        Ok(world) => world,
+        Err(e) => {
+            eprintln!("Failed to load world \"{}\": {}", world_path, e);
+            return;
+        }
+    };
+    for chest in &world.chests[..] {
+        for item in &chest.items[..] {
+            if let Some(ref item) = *item {
+                if item.id == id {
+                    let pos = world.tile_to_gps_pos(chest.x, chest.y);
+                    println!("Found in chest at {}", pos);
+                }
+            }
+        }
+    }
 }

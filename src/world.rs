@@ -3,7 +3,7 @@ use byteorder::{ReadBytesExt, /*WriteBytesExt,*/ LE};
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::{self, SeekFrom};
-//use std::fmt;
+use std::fmt;
 
 pub struct World {
     pub chests: Vec<Chest>,
@@ -111,7 +111,7 @@ impl World {
             seed,
         })
     }
-    /*pub fn tile_to_gps_pos(&self, x: i32, y: i32) -> GpsPos {
+    pub fn tile_to_gps_pos(&self, x: i32, y: i32) -> GpsPos {
         let raw_x = x * 2 - self.width;
         let raw_y = self.surface_y * 2.0 - f64::from(y) * 2.0;
         let x_side = if raw_x > 0 { XSide::East } else { XSide::West };
@@ -126,7 +126,7 @@ impl World {
             x_side,
             y_side,
         }
-    }*/
+    }
     /*pub fn patch_npcs(&self, file_path: &str) -> Result<(), Box<Error>> {
         use std::fs::OpenOptions;
         let mut f = OpenOptions::new().read(true).write(true).open(file_path)?;
@@ -139,7 +139,7 @@ impl World {
     }*/
 }
 
-/*pub struct GpsPos {
+pub struct GpsPos {
     x_offset: u32,
     y_offset: u32,
     x_side: XSide,
@@ -165,9 +165,9 @@ impl fmt::Display for GpsPos {
             yside
         )
     }
-}*/
+}
 
-/*pub enum XSide {
+pub enum XSide {
     West,
     East,
 }
@@ -175,7 +175,7 @@ impl fmt::Display for GpsPos {
 pub enum YSide {
     AboveSurface,
     BelowSurface,
-}*/
+}
 
 const CHEST_MAX_ITEMS: i8 = 40;
 
