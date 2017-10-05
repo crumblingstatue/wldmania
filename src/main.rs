@@ -66,6 +66,15 @@ fn main() {
                         .required(true)
                         .help("Id of the item you want to find"),
                 ),
+        )
+        .subcommand(
+            SubCommand::with_name("fix-npcs")
+                .about("Fix NPCs that disappeared due to the NaN position bug.")
+                .arg(
+                    Arg::with_name("wld-file")
+                        .required(true)
+                        .help("Path to a Terraria .wld file."),
+                ),
         );
 
     let matches = app.get_matches();
@@ -83,14 +92,10 @@ fn main() {
         let item_id = submatches.value_of("item-id").unwrap();
         let item_id = item_id.parse::<i32>().unwrap();
         find_item(world_path, item_id);
+    } else if let Some(submatches) = matches.subcommand_matches("fix-npcs") {
+        let world_path = submatches.value_of("wld-file").unwrap();
+        fix_npcs(world_path);
     }
-
-    /*for (k, v) in &cfg.npc_relocate {
-        relocate_npc(&mut world, k, v);
-    }
-    if !cfg.npc_relocate.is_empty() {
-        world.patch_npcs(&cfg.world.path).unwrap();
-    }*/
 }
 
 fn generate_template_cfg(path: &str) {
@@ -98,16 +103,6 @@ fn generate_template_cfg(path: &str) {
     f.write_all(include_bytes!("../templates/itemhunt.toml"))
         .unwrap();
 }
-
-/*fn relocate_npc(world: &mut World, name: &str, to: &config::Relocate) {
-    for npc in &mut world.npcs {
-        if npc.name == name {
-            eprintln!("Relocating npc {} to {}, {}", name, to.x, to.y);
-            npc.x = to.x;
-            npc.y = to.y;
-        }
-    }
-}*/
 
 fn itemhunt<'a, I: Iterator<Item = &'a str>>(cfg_path: &str, world_paths: I) {
     use std::collections::HashMap;
@@ -199,5 +194,31 @@ fn find_item(world_path: &str, id: i32) {
                 }
             }
         }
+    }
+}
+
+fn fix_npcs(world_path: &str) {
+    let mut world = match World::load(world_path) {
+        Ok(world) => world,
+        Err(e) => {
+            eprintln!("Failed to load world \"{}\": {}", world_path, e);
+            return;
+        }
+    };
+    let mut fixed_any = false;
+    for npc in &mut world.npcs {
+        if npc.x.is_nan() || npc.y.is_nan() {
+            // TODO: Need proper conversion from tile to entity coordinates.
+            // Try multiplying by 16.
+            npc.x = world.spawn_x as f32;
+            npc.y = world.spawn_y as f32;
+            fixed_any = true;
+            println!("{} has NaN position, reset to spawn.", npc.name);
+        }
+    }
+    if fixed_any {
+        world.patch_npcs(world_path).unwrap();
+    } else {
+        println!("No NPCs needed fixing.");
     }
 }
