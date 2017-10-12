@@ -210,8 +210,8 @@ fn fix_npcs(world_path: &str) {
         if npc.x.is_nan() || npc.y.is_nan() {
             // TODO: Need proper conversion from tile to entity coordinates.
             // Try multiplying by 16.
-            npc.x = world.spawn_x as f32;
-            npc.y = world.spawn_y as f32;
+            npc.x = world.spawn_x as f32 * 16.;
+            npc.y = world.spawn_y as f32 * 16.;
             fixed_any = true;
             println!("{} has NaN position, reset to spawn.", npc.name);
         }
