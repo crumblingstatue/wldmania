@@ -163,10 +163,7 @@ impl fmt::Display for GpsPos {
         write!(
             f,
             "{} {}, {} {}",
-            self.x_offset,
-            xside,
-            self.y_offset,
-            yside
+            self.x_offset, xside, self.y_offset, yside
         )
     }
 }
