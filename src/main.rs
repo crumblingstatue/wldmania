@@ -144,7 +144,7 @@ fn itemhunt<'a, I: Iterator<Item = &'a str>>(cfg_path: &str, world_paths: I) {
         for chest in &world.chests[..] {
             for item in &chest.items[..] {
                 if let Some(ref item) = *item {
-                    for (_name, req) in &mut required_items {
+                    for req in required_items.values_mut() {
                         if item.id == req.id {
                             req.times_found += 1;
                         }
