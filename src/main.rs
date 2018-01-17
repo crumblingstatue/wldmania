@@ -110,8 +110,10 @@ fn itemhunt<'a, I: Iterator<Item = &'a str>>(cfg_path: &str, world_paths: I) {
     #[derive(Deserialize)]
     struct Item {
         id: i32,
-        #[serde(default = "item_amount_default")] amount: i32,
-        #[serde(skip)] times_found: i32,
+        #[serde(default = "item_amount_default")]
+        amount: i32,
+        #[serde(skip)]
+        times_found: i32,
     }
     fn item_amount_default() -> i32 {
         1
