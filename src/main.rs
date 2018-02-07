@@ -1,3 +1,5 @@
+#![feature(nll)]
+
 extern crate ansi_term;
 extern crate byteorder;
 extern crate clap;
@@ -11,6 +13,7 @@ use clap::{App, AppSettings, Arg, SubCommand};
 use std::fs::File;
 use std::io::prelude::*;
 use ansi_term::Colour::{Green, Red};
+use std::collections::HashMap;
 
 mod world;
 
@@ -75,6 +78,15 @@ fn main() {
                         .required(true)
                         .help("Path to a Terraria .wld file."),
                 ),
+        )
+        .subcommand(
+            SubCommand::with_name("analyze-chests")
+                .about("Analyze the contents of chests")
+                .arg(
+                    Arg::with_name("wld-file")
+                        .required(true)
+                        .help("Path to a Terraria .wld file."),
+                ),
         );
 
     let matches = app.get_matches();
@@ -95,6 +107,9 @@ fn main() {
     } else if let Some(submatches) = matches.subcommand_matches("fix-npcs") {
         let world_path = submatches.value_of("wld-file").unwrap();
         fix_npcs(world_path);
+    } else if let Some(submatches) = matches.subcommand_matches("analyze-chests") {
+        let world_path = submatches.value_of("wld-file").unwrap();
+        analyze_chests(world_path);
     }
 }
 
@@ -222,5 +237,48 @@ fn fix_npcs(world_path: &str) {
         world.patch_npcs(world_path).unwrap();
     } else {
         println!("No NPCs needed fixing.");
+    }
+}
+
+fn analyze_chests(world_path: &str) {
+    let world = match World::load(world_path) {
+        Ok(world) => world,
+        Err(e) => {
+            eprintln!("Failed to load world \"{}\": {}", world_path, e);
+            return;
+        }
+    };
+    #[derive(Debug)]
+    struct ItemStat {
+        stack_count: u32,
+        total_count: u32,
+    }
+    let mut item_stats: HashMap<i32, ItemStat> = HashMap::new();
+    for chest in &world.chests {
+        for item in chest.items.iter() {
+            if let Some(ref item) = *item {
+                match item_stats.get_mut(&item.id) {
+                    Some(ref mut stat) => {
+                        stat.stack_count += 1;
+                        stat.total_count += u32::from(item.stack);
+                    }
+                    None => {
+                        item_stats.insert(
+                            item.id,
+                            ItemStat {
+                                stack_count: 1,
+                                total_count: u32::from(item.stack),
+                            },
+                        );
+                    }
+                }
+            }
+        }
+    }
+    let mut vec = item_stats.into_iter().collect::<Vec<_>>();
+    vec.sort_by(|&(_, ref v1), &(_, ref v2)| v1.stack_count.cmp(&v2.stack_count).reverse());
+    println!("id\tstack\ttotal");
+    for (k, v) in vec {
+        println!("{}\t{}\t{}", k, v.stack_count, v.total_count);
     }
 }
