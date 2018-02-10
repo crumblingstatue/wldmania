@@ -3,6 +3,7 @@
 extern crate ansi_term;
 extern crate byteorder;
 extern crate clap;
+extern crate csv;
 #[macro_use]
 extern crate serde_derive;
 extern crate toml;
@@ -119,11 +120,22 @@ fn generate_template_cfg(path: &str) {
         .unwrap();
 }
 
+fn read_item_ids() -> HashMap<String, u16> {
+    let mut rdr = csv::Reader::from_path("./items/items.csv").unwrap();
+    let mut item_ids = HashMap::new();
+    for result in rdr.records() {
+        let record = result.unwrap();
+        item_ids.insert(record[1].into(), record[0].parse().unwrap());
+    }
+    item_ids
+}
+
 fn itemhunt<'a, I: Iterator<Item = &'a str>>(cfg_path: &str, world_paths: I) {
     use std::collections::HashMap;
 
     #[derive(Deserialize)]
     struct Item {
+        #[serde(skip)]
         id: i32,
         #[serde(default = "item_amount_default")]
         amount: i32,
@@ -148,6 +160,18 @@ fn itemhunt<'a, I: Iterator<Item = &'a str>>(cfg_path: &str, world_paths: I) {
     let mut buf = String::new();
     f.read_to_string(&mut buf).unwrap();
     let mut required_items: HashMap<String, Item> = toml::from_str(&buf).unwrap();
+    let ids = read_item_ids();
+    for (k, v) in &mut required_items {
+        match ids.get(k) {
+            Some(id) => {
+                v.id = i32::from(*id);
+            }
+            None => {
+                eprintln!("Item \"{}\" doesn't map to a valid id.", k);
+                return;
+            }
+        }
+    }
     let mut n_meet_reqs = 0;
     for world_path in world_paths {
         let world = match World::load(world_path) {
