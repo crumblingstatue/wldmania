@@ -1,6 +1,7 @@
 #![feature(nll)]
 
 extern crate ansi_term;
+extern crate bidir_map;
 extern crate byteorder;
 extern crate clap;
 extern crate csv;
@@ -12,6 +13,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use ansi_term::Colour::{Green, Red};
 use std::collections::HashMap;
+use bidir_map::BidirMap;
 
 mod world;
 
@@ -117,12 +119,12 @@ fn generate_template_cfg(path: &str) {
         .unwrap();
 }
 
-fn read_item_ids() -> HashMap<String, u16> {
+fn read_item_ids() -> BidirMap<u16, String> {
     let mut rdr = csv::Reader::from_path("./items/items.csv").unwrap();
-    let mut item_ids = HashMap::new();
+    let mut item_ids = BidirMap::new();
     for result in rdr.records() {
         let record = result.unwrap();
-        item_ids.insert(record[1].into(), record[0].parse().unwrap());
+        item_ids.insert(record[0].parse().unwrap(), record[1].into());
     }
     item_ids
 }
@@ -175,7 +177,7 @@ fn itemhunt<'a, I: Iterator<Item = &'a str>>(cfg_path: &str, world_paths: I) {
     let mut required_items: HashMap<String, Item> = read_item_req_list(cfg_path);
     let ids = read_item_ids();
     for (k, v) in &mut required_items {
-        match ids.get(k) {
+        match ids.get_by_second(k) {
             Some(id) => {
                 v.id = *id;
             }
@@ -314,8 +316,14 @@ fn analyze_chests(world_path: &str) {
     }
     let mut vec = item_stats.into_iter().collect::<Vec<_>>();
     vec.sort_by(|&(_, ref v1), &(_, ref v2)| v1.stack_count.cmp(&v2.stack_count).reverse());
-    println!("id\tstack\ttotal");
+    let ids = read_item_ids();
+    println!("{:30}stack total", "name");
     for (k, v) in vec {
-        println!("{}\t{}\t{}", k, v.stack_count, v.total_count);
+        println!(
+            "{:30}{:<5} {}",
+            ids.get_by_first(&(k as u16)).unwrap(),
+            v.stack_count,
+            v.total_count
+        );
     }
 }
