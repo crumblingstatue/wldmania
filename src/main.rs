@@ -4,9 +4,6 @@ extern crate ansi_term;
 extern crate byteorder;
 extern crate clap;
 extern crate csv;
-#[macro_use]
-extern crate serde_derive;
-extern crate toml;
 
 use std::fmt;
 use world::World;
@@ -42,7 +39,7 @@ fn main() {
                     Arg::with_name("req-file")
                         .index(1)
                         .required_unless("gen")
-                        .help("TOML file containing the desired items"),
+                        .help("File containing the desired items"),
                 )
                 .arg(
                     Arg::with_name("gen")
@@ -116,7 +113,7 @@ fn main() {
 
 fn generate_template_cfg(path: &str) {
     let mut f = File::create(path).unwrap();
-    f.write_all(include_bytes!("../templates/itemhunt.toml"))
+    f.write_all(include_bytes!("../templates/itemhunt.list"))
         .unwrap();
 }
 
@@ -130,21 +127,40 @@ fn read_item_ids() -> HashMap<String, u16> {
     item_ids
 }
 
-fn itemhunt<'a, I: Iterator<Item = &'a str>>(cfg_path: &str, world_paths: I) {
-    use std::collections::HashMap;
+struct Item {
+    id: u16,
+    amount: i32,
+    times_found: i32,
+}
 
-    #[derive(Deserialize)]
-    struct Item {
-        #[serde(skip)]
-        id: i32,
-        #[serde(default = "item_amount_default")]
-        amount: i32,
-        #[serde(skip)]
-        times_found: i32,
+fn read_item_req_list(cfg_path: &str) -> HashMap<String, Item> {
+    let mut f = File::open(cfg_path).unwrap();
+    let mut buf = String::new();
+    f.read_to_string(&mut buf).unwrap();
+    let mut items = HashMap::new();
+    for line in buf.lines() {
+        let (amount, name);
+        if line.starts_with('*') {
+            let first_space = line.find(' ').expect("Expected space after *amount");
+            amount = line[1..first_space].parse().unwrap();
+            name = line[first_space..].trim().into();
+        } else {
+            amount = 1;
+            name = line.trim().into();
+        }
+        items.insert(
+            name,
+            Item {
+                id: 0, // parsed later from id list
+                amount,
+                times_found: 0,
+            },
+        );
     }
-    fn item_amount_default() -> i32 {
-        1
-    }
+    items
+}
+
+fn itemhunt<'a, I: Iterator<Item = &'a str>>(cfg_path: &str, world_paths: I) {
     struct NameOrId<'a>(&'a str, i32);
 
     impl<'a> fmt::Display for NameOrId<'a> {
@@ -156,15 +172,12 @@ fn itemhunt<'a, I: Iterator<Item = &'a str>>(cfg_path: &str, world_paths: I) {
             }
         }
     }
-    let mut f = File::open(cfg_path).unwrap();
-    let mut buf = String::new();
-    f.read_to_string(&mut buf).unwrap();
-    let mut required_items: HashMap<String, Item> = toml::from_str(&buf).unwrap();
+    let mut required_items: HashMap<String, Item> = read_item_req_list(cfg_path);
     let ids = read_item_ids();
     for (k, v) in &mut required_items {
         match ids.get(k) {
             Some(id) => {
-                v.id = i32::from(*id);
+                v.id = *id;
             }
             None => {
                 eprintln!("Item \"{}\" doesn't map to a valid id.", k);
@@ -186,7 +199,7 @@ fn itemhunt<'a, I: Iterator<Item = &'a str>>(cfg_path: &str, world_paths: I) {
             for item in &chest.items[..] {
                 if let Some(ref item) = *item {
                     for req in required_items.values_mut() {
-                        if item.id == req.id {
+                        if item.id == i32::from(req.id) {
                             req.times_found += 1;
                         }
                     }
@@ -199,7 +212,7 @@ fn itemhunt<'a, I: Iterator<Item = &'a str>>(cfg_path: &str, world_paths: I) {
                 didnt_meet_reqs = true;
                 let msg = format!(
                     "{} - {}/{}",
-                    NameOrId(name, req.id),
+                    NameOrId(name, i32::from(req.id)),
                     req.times_found,
                     req.amount
                 );
