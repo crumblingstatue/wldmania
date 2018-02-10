@@ -5,6 +5,7 @@ extern crate bidir_map;
 extern crate byteorder;
 extern crate clap;
 extern crate csv;
+extern crate rand;
 
 use std::fmt;
 use world::World;
@@ -14,6 +15,7 @@ use std::io::prelude::*;
 use ansi_term::Colour::{Green, Red};
 use std::collections::HashMap;
 use bidir_map::BidirMap;
+use rand::{thread_rng, Rng, ThreadRng};
 
 mod world;
 
@@ -57,6 +59,27 @@ fn main() {
                 ),
         )
         .subcommand(
+            SubCommand::with_name("bless-chests")
+                .about("Bless the chests of your world with the desired items")
+                .arg(
+                    Arg::with_name("req-file")
+                        .index(1)
+                        .required_unless("gen")
+                        .help("File containing the desired items"),
+                )
+                .arg(
+                    Arg::with_name("gen")
+                        .short("g")
+                        .help("Generate a template requirements file.")
+                        .takes_value(true),
+                )
+                .arg(
+                    Arg::with_name("wld-file")
+                        .help("Path to a Terraria .wld file.")
+                        .required_unless("gen"),
+                ),
+        )
+        .subcommand(
             SubCommand::with_name("find")
                 .about("Find an item in the world")
                 .arg(
@@ -65,9 +88,9 @@ fn main() {
                         .help("Path to a Terraria .wld file."),
                 )
                 .arg(
-                    Arg::with_name("item-id")
+                    Arg::with_name("item-name")
                         .required(true)
-                        .help("Id of the item you want to find"),
+                        .help("Name of the item you want to find"),
                 ),
         )
         .subcommand(
@@ -99,11 +122,18 @@ fn main() {
             let world_paths = submatches.values_of("wld-file").unwrap();
             itemhunt(req_path, world_paths);
         }
+    } else if let Some(submatches) = matches.subcommand_matches("bless-chests") {
+        if let Some(template_cfg_path) = submatches.value_of("gen") {
+            generate_template_cfg(template_cfg_path);
+        } else {
+            let req_path = submatches.value_of("req-file").unwrap();
+            let world_path = submatches.value_of("wld-file").unwrap();
+            bless_chests(req_path, world_path);
+        }
     } else if let Some(submatches) = matches.subcommand_matches("find") {
         let world_path = submatches.value_of("wld-file").unwrap();
-        let item_id = submatches.value_of("item-id").unwrap();
-        let item_id = item_id.parse::<i32>().unwrap();
-        find_item(world_path, item_id);
+        let item_name = submatches.value_of("item-name").unwrap();
+        find_item(world_path, item_name);
     } else if let Some(submatches) = matches.subcommand_matches("fix-npcs") {
         let world_path = submatches.value_of("wld-file").unwrap();
         fix_npcs(world_path);
@@ -133,29 +163,55 @@ struct Item {
     id: u16,
     amount: i32,
     times_found: i32,
+    min_stack: u16,
+    max_stack: u16,
 }
 
 fn read_item_req_list(cfg_path: &str) -> HashMap<String, Item> {
+    let ids = read_item_ids();
     let mut f = File::open(cfg_path).unwrap();
     let mut buf = String::new();
     f.read_to_string(&mut buf).unwrap();
-    let mut items = HashMap::new();
+    let mut items: HashMap<String, Item> = HashMap::new();
     for line in buf.lines() {
-        let (amount, name);
+        let (amount, name, min_stack, max_stack);
         if line.starts_with('*') {
-            let first_space = line.find(' ').expect("Expected space after *amount");
-            amount = line[1..first_space].parse().unwrap();
-            name = line[first_space..].trim().into();
+            match line.find('~') {
+                Some(tilde_pos) => {
+                    amount = line[1..tilde_pos].parse().unwrap();
+                    let first_hyphen = line.find('-').expect("Expected - after *amount~minstack");
+                    min_stack = line[tilde_pos + 1..first_hyphen].parse().unwrap();
+                    let first_space = line.find(' ')
+                        .expect("Expected space after *amount~minstack-maxstack");
+                    max_stack = line[first_hyphen + 1..first_space].parse().unwrap();
+                    name = line[first_space..].trim();
+                }
+                None => {
+                    let first_space = line.find(' ').expect("Expected space after *amount");
+                    amount = line[1..first_space].parse().unwrap();
+                    name = line[first_space..].trim();
+                    min_stack = 1;
+                    max_stack = 1;
+                }
+            }
         } else {
             amount = 1;
-            name = line.trim().into();
+            min_stack = 1;
+            max_stack = 1;
+            name = line.trim();
         }
+        let id = match ids.get_by_second(name) {
+            Some(id) => *id,
+            None => panic!("Item \"{}\" doesn't map to a valid id.", name),
+        };
         items.insert(
-            name,
+            name.into(),
             Item {
-                id: 0, // parsed later from id list
+                id,
                 amount,
                 times_found: 0,
+                min_stack,
+                max_stack,
             },
         );
     }
@@ -175,18 +231,6 @@ fn itemhunt<'a, I: Iterator<Item = &'a str>>(cfg_path: &str, world_paths: I) {
         }
     }
     let mut required_items: HashMap<String, Item> = read_item_req_list(cfg_path);
-    let ids = read_item_ids();
-    for (k, v) in &mut required_items {
-        match ids.get_by_second(k) {
-            Some(id) => {
-                v.id = *id;
-            }
-            None => {
-                eprintln!("Item \"{}\" doesn't map to a valid id.", k);
-                return;
-            }
-        }
-    }
     let mut n_meet_reqs = 0;
     for world_path in world_paths {
         let world = match World::load(world_path) {
@@ -199,7 +243,7 @@ fn itemhunt<'a, I: Iterator<Item = &'a str>>(cfg_path: &str, world_paths: I) {
         println!("{} ({}):", world_path, world.seed);
         for chest in &world.chests[..] {
             for item in &chest.items[..] {
-                if let Some(ref item) = *item {
+                if item.stack != 0 {
                     for req in required_items.values_mut() {
                         if item.id == i32::from(req.id) {
                             req.times_found += 1;
@@ -233,7 +277,15 @@ fn itemhunt<'a, I: Iterator<Item = &'a str>>(cfg_path: &str, world_paths: I) {
     println!("{} worlds in total meet the requirements.", n_meet_reqs);
 }
 
-fn find_item(world_path: &str, id: i32) {
+fn find_item(world_path: &str, name: &str) {
+    let ids = read_item_ids();
+    let id = match ids.get_by_second(name) {
+        Some(id) => *id,
+        None => {
+            eprintln!("No matching id found for item '{}'", name);
+            return;
+        }
+    };
     let world = match World::load(world_path) {
         Ok(world) => world,
         Err(e) => {
@@ -241,13 +293,12 @@ fn find_item(world_path: &str, id: i32) {
             return;
         }
     };
+    let (w_width, w_surface_y) = (world.width(), world.surface_y());
     for chest in &world.chests[..] {
         for item in &chest.items[..] {
-            if let Some(ref item) = *item {
-                if item.id == id {
-                    let pos = world.tile_to_gps_pos(chest.x, chest.y);
-                    println!("Found in chest at {}", pos);
-                }
+            if item.stack != 0 && item.id == i32::from(id) {
+                let pos = World::tile_to_gps_pos(w_width, w_surface_y, chest.x, chest.y);
+                println!("Found in chest at {}", pos);
             }
         }
     }
@@ -279,6 +330,55 @@ fn fix_npcs(world_path: &str) {
     }
 }
 
+fn place_in_chest(
+    chest: &mut world::Chest,
+    id: i32,
+    min_stack: u16,
+    max_stack: u16,
+    rng: &mut ThreadRng,
+) {
+    for item in chest.items.iter_mut() {
+        if item.stack == 0 {
+            item.stack = if min_stack == 1 && max_stack == 1 {
+                1
+            } else {
+                rng.gen_range(min_stack, max_stack)
+            };
+            item.id = id;
+            item.prefix_id = 0;
+            return;
+        }
+    }
+}
+
+fn bless_chests(cfg_path: &str, world_path: &str) {
+    let reqs = read_item_req_list(cfg_path);
+    let mut world = match World::load(world_path) {
+        Ok(world) => world,
+        Err(e) => {
+            eprintln!("Failed to load world \"{}\": {}", world_path, e);
+            return;
+        }
+    };
+    let mut rng = thread_rng();
+    let mut chest_indexes: Vec<usize> = (0..world.chests.len()).collect();
+    rng.shuffle(&mut chest_indexes);
+    let mut chest_indexes = chest_indexes.into_iter().cycle();
+    for req in reqs.values() {
+        for _ in 0..req.amount {
+            let chest = &mut world.chests[chest_indexes.next().unwrap()];
+            place_in_chest(
+                chest,
+                i32::from(req.id),
+                req.min_stack,
+                req.max_stack,
+                &mut rng,
+            );
+        }
+    }
+    world.patch_chests(world_path).unwrap();
+}
+
 fn analyze_chests(world_path: &str) {
     let world = match World::load(world_path) {
         Ok(world) => world,
@@ -295,7 +395,7 @@ fn analyze_chests(world_path: &str) {
     let mut item_stats: HashMap<i32, ItemStat> = HashMap::new();
     for chest in &world.chests {
         for item in chest.items.iter() {
-            if let Some(ref item) = *item {
+            if item.stack != 0 {
                 match item_stats.get_mut(&item.id) {
                     Some(ref mut stat) => {
                         stat.stack_count += 1;

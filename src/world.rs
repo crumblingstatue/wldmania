@@ -16,9 +16,32 @@ pub struct World {
 }
 
 struct Offsets {
-    header: u64,
-    chests: u64,
-    npcs: u64,
+    header: i32,
+    tiles: i32,
+    chests: i32,
+    signs: i32,
+    npcs: i32,
+    entities: i32,
+    footer: i32,
+    unused_1: i32,
+    unused_2: i32,
+    unused_3: i32,
+}
+
+impl Offsets {
+    fn write(&self, f: &mut File) -> Result<(), io::Error> {
+        f.write_i32::<LE>(self.header)?;
+        f.write_i32::<LE>(self.tiles)?;
+        f.write_i32::<LE>(self.chests)?;
+        f.write_i32::<LE>(self.signs)?;
+        f.write_i32::<LE>(self.npcs)?;
+        f.write_i32::<LE>(self.entities)?;
+        f.write_i32::<LE>(self.footer)?;
+        f.write_i32::<LE>(self.unused_1)?;
+        f.write_i32::<LE>(self.unused_2)?;
+        f.write_i32::<LE>(self.unused_3)?;
+        Ok(())
+    }
 }
 
 fn read_offsets(f: &mut File) -> Result<Offsets, Box<Error>> {
@@ -38,28 +61,43 @@ fn read_offsets(f: &mut File) -> Result<Offsets, Box<Error>> {
     if n_pointers != 10 {
         return Err(format!("Unsupported number of pointers: {}", n_pointers).into());
     }
-    let header_ptr = f.read_i32::<LE>()?;
-    let _tiles_ptr = f.read_i32::<LE>()?;
-    let chests_ptr = f.read_i32::<LE>()?;
-    let _signs_ptr = f.read_i32::<LE>()?;
-    let npcs_ptr = f.read_i32::<LE>()?;
+    let header = f.read_i32::<LE>()?;
+    let tiles = f.read_i32::<LE>()?;
+    let chests = f.read_i32::<LE>()?;
+    let signs = f.read_i32::<LE>()?;
+    let npcs = f.read_i32::<LE>()?;
+    let entities = f.read_i32::<LE>()?;
+    let footer = f.read_i32::<LE>()?;
+    let unused_1 = f.read_i32::<LE>()?;
+    let unused_2 = f.read_i32::<LE>()?;
+    let unused_3 = f.read_i32::<LE>()?;
     Ok(Offsets {
-        header: header_ptr as u64,
-        chests: chests_ptr as u64,
-        npcs: npcs_ptr as u64,
+        header,
+        tiles,
+        chests,
+        signs,
+        npcs,
+        entities,
+        footer,
+        unused_1,
+        unused_2,
+        unused_3,
     })
 }
+
+const ITEMS_PER_CHEST: i16 = 40;
+const OFFSET_TABLE_OFFSET: u64 = 0x1A;
 
 impl World {
     pub fn load(path: &str) -> Result<Self, Box<Error>> {
         let mut f = File::open(path)?;
         let offsets = read_offsets(&mut f)?;
-        f.seek(SeekFrom::Start(offsets.npcs))?;
+        f.seek(SeekFrom::Start(offsets.npcs as u64))?;
         let mut npcs = Vec::new();
         while let Some(npc) = read_npc(&mut f)? {
             npcs.push(npc);
         }
-        f.seek(SeekFrom::Start(offsets.header))?;
+        f.seek(SeekFrom::Start(offsets.header as u64))?;
         let _name = read_string(&mut f)?;
         let seed = read_string(&mut f)?;
         let _gen_version = f.read_i64::<LE>()?;
@@ -95,10 +133,10 @@ impl World {
         let spawn_x = f.read_i32::<LE>()?;
         let spawn_y = f.read_i32::<LE>()?;
         let surface_y = f.read_f64::<LE>()?;
-        f.seek(SeekFrom::Start(offsets.chests))?;
+        f.seek(SeekFrom::Start(offsets.chests as u64))?;
         let n_chests = f.read_i16::<LE>()?;
         let items_per_chest = f.read_i16::<LE>()?;
-        if items_per_chest != 40 {
+        if items_per_chest != ITEMS_PER_CHEST {
             return Err(format!("Unsupported items per chest: {}", items_per_chest).into());
         }
         let mut chests = Vec::new();
@@ -115,9 +153,9 @@ impl World {
             spawn_y,
         })
     }
-    pub fn tile_to_gps_pos(&self, x: i32, y: i32) -> GpsPos {
-        let raw_x = x * 2 - self.width;
-        let raw_y = self.surface_y * 2.0 - f64::from(y) * 2.0;
+    pub fn tile_to_gps_pos(self_width: i32, self_surface_y: f64, x: i32, y: i32) -> GpsPos {
+        let raw_x = x * 2 - self_width;
+        let raw_y = self_surface_y * 2.0 - f64::from(y) * 2.0;
         let x_side = if raw_x > 0 { XSide::East } else { XSide::West };
         let y_side = if raw_y > 0.0 {
             YSide::AboveSurface
@@ -135,11 +173,50 @@ impl World {
         use std::fs::OpenOptions;
         let mut f = OpenOptions::new().read(true).write(true).open(file_path)?;
         let offsets = read_offsets(&mut f)?;
-        f.seek(SeekFrom::Start(offsets.npcs))?;
+        f.seek(SeekFrom::Start(offsets.npcs as u64))?;
         for npc in &self.npcs {
             write_npc(&mut f, npc)?;
         }
         Ok(())
+    }
+    pub fn patch_chests(&self, file_path: &str) -> Result<(), Box<Error>> {
+        use std::fs::OpenOptions;
+        let mut f = OpenOptions::new().read(true).write(true).open(file_path)?;
+        let mut offsets = read_offsets(&mut f)?;
+        // Save the contents after chests into a buffer to write back later
+        f.seek(SeekFrom::Start(offsets.signs as u64))?;
+        let mut rest_buf = Vec::new();
+        f.read_to_end(&mut rest_buf)?;
+        f.seek(SeekFrom::Start(offsets.chests as u64))?;
+        self.write_chests(&mut f)?;
+        let new_signs_offset = f.seek(SeekFrom::Current(0))?;
+        // Write back everything after chests
+        f.write_all(&rest_buf)?;
+        let offs_diff = new_signs_offset as i32 - offsets.signs as i32;
+        f.seek(SeekFrom::Start(OFFSET_TABLE_OFFSET))?;
+        offsets.signs += offs_diff;
+        offsets.npcs += offs_diff;
+        offsets.entities += offs_diff;
+        offsets.footer += offs_diff;
+        offsets.unused_1 += offs_diff;
+        offsets.unused_2 += offs_diff;
+        offsets.unused_3 += offs_diff;
+        offsets.write(&mut f)?;
+        Ok(())
+    }
+    fn write_chests(&self, f: &mut File) -> Result<(), Box<Error>> {
+        f.write_i16::<LE>(self.chests.len() as i16)?;
+        f.write_i16::<LE>(ITEMS_PER_CHEST)?;
+        for chest in &self.chests {
+            chest.write(f)?;
+        }
+        Ok(())
+    }
+    pub fn width(&self) -> i32 {
+        self.width
+    }
+    pub fn surface_y(&self) -> f64 {
+        self.surface_y
     }
 }
 
@@ -184,7 +261,7 @@ pub struct Chest {
     pub x: i32,
     pub y: i32,
     pub name: String,
-    pub items: [Option<Item>; CHEST_MAX_ITEMS as usize],
+    pub items: [Item; CHEST_MAX_ITEMS as usize],
 }
 
 impl Chest {
@@ -192,12 +269,20 @@ impl Chest {
         let x = f.read_i32::<LE>()?;
         let y = f.read_i32::<LE>()?;
         let name = read_string(f)?;
-        let mut items: [Option<Item>; CHEST_MAX_ITEMS as usize] =
-            unsafe { ::std::mem::uninitialized() };
+        let mut items: [Item; CHEST_MAX_ITEMS as usize] = unsafe { ::std::mem::uninitialized() };
         for item in &mut items[..] {
             *item = Item::read(f)?;
         }
         Ok(Self { name, x, y, items })
+    }
+    fn write(&self, f: &mut File) -> io::Result<()> {
+        f.write_i32::<LE>(self.x)?;
+        f.write_i32::<LE>(self.y)?;
+        write_string(f, &self.name)?;
+        for item in self.items.iter() {
+            item.write(f)?;
+        }
+        Ok(())
     }
 }
 
@@ -232,6 +317,7 @@ fn read_string_len(f: &mut File) -> io::Result<usize> {
     Ok(len)
 }
 
+#[derive(Default)]
 pub struct Item {
     pub stack: u16,
     pub id: i32,
@@ -239,19 +325,27 @@ pub struct Item {
 }
 
 impl Item {
-    fn read(f: &mut File) -> io::Result<Option<Self>> {
+    fn read(f: &mut File) -> io::Result<Self> {
         let stack = f.read_u16::<LE>()?;
         if stack == 0 {
-            Ok(None)
+            Ok(Self::default())
         } else {
             let id = f.read_i32::<LE>()?;
             let prefix_id = f.read_u8()?;
-            Ok(Some(Self {
+            Ok(Self {
                 stack,
                 id,
                 prefix_id,
-            }))
+            })
         }
+    }
+    fn write(&self, f: &mut File) -> io::Result<()> {
+        f.write_u16::<LE>(self.stack)?;
+        if self.stack != 0 {
+            f.write_i32::<LE>(self.id)?;
+            f.write_u8(self.prefix_id)?;
+        }
+        Ok(())
     }
 }
 
