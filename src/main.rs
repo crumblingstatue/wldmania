@@ -149,14 +149,25 @@ fn generate_template_cfg(path: &str) {
         .unwrap();
 }
 
-fn read_item_ids() -> BidirMap<u16, String> {
+struct ItemIdMap(BidirMap<u16, String>);
+
+impl ItemIdMap {
+    fn name_by_id(&self, id: u16) -> Option<&str> {
+        self.0.get_by_first(&id).map(String::as_str)
+    }
+    fn id_by_name(&self, name: &str) -> Option<u16> {
+        self.0.get_by_second(&name.to_lowercase()).cloned()
+    }
+}
+
+fn read_item_ids() -> ItemIdMap {
     let mut rdr = csv::Reader::from_path("./items/items.csv").unwrap();
     let mut item_ids = BidirMap::new();
     for result in rdr.records() {
         let record = result.unwrap();
-        item_ids.insert(record[0].parse().unwrap(), record[1].into());
+        item_ids.insert(record[0].parse().unwrap(), record[1].to_lowercase());
     }
-    item_ids
+    ItemIdMap(item_ids)
 }
 
 struct Item {
@@ -200,8 +211,8 @@ fn read_item_req_list(cfg_path: &str) -> HashMap<String, Item> {
             max_stack = 1;
             name = line.trim();
         }
-        let id = match ids.get_by_second(name) {
-            Some(id) => *id,
+        let id = match ids.id_by_name(name) {
+            Some(id) => id,
             None => panic!("Item \"{}\" doesn't map to a valid id.", name),
         };
         items.insert(
@@ -279,8 +290,8 @@ fn itemhunt<'a, I: Iterator<Item = &'a str>>(cfg_path: &str, world_paths: I) {
 
 fn find_item(world_path: &str, name: &str) {
     let ids = read_item_ids();
-    let id = match ids.get_by_second(name) {
-        Some(id) => *id,
+    let id = match ids.id_by_name(name) {
+        Some(id) => id,
         None => {
             eprintln!("No matching id found for item '{}'", name);
             return;
@@ -421,7 +432,7 @@ fn analyze_chests(world_path: &str) {
     for (k, v) in vec {
         println!(
             "{:30}{:<5} {}",
-            ids.get_by_first(&(k as u16)).unwrap(),
+            ids.name_by_id(k as u16).unwrap(),
             v.stack_count,
             v.total_count
         );
