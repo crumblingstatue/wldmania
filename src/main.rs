@@ -338,17 +338,27 @@ fn bless_chests(cfg_path: &str, world_path: &str) {
     let mut rng = thread_rng();
     let chest_indexes = 0..world.chests.len();
     for req in &mut reqs {
-        // chest type of chest at index matches any of required chest types
-        let mut matching_indexes: Vec<usize> = chest_indexes
-            .clone()
-            .filter(|&idx| {
-                let chest = &world.chests[idx];
-                let type_ = world.chest_types[&(chest.x, chest.y)];
-                req.only_in.is_empty() || req.only_in.contains(&type_)
-            })
-            .collect();
-        rng.shuffle(&mut matching_indexes);
-        req.tracker.acceptable_chest_indexes = Box::new(matching_indexes.into_iter().cycle())
+        // Decrease stack count for every item that already exists in the world
+        for chest in &world.chests[..] {
+            for item in &chest.items[..] {
+                if item.stack != 0 && item.id == i32::from(req.id) && req.n_stacks > 0 {
+                    req.n_stacks -= 1;
+                }
+            }
+        }
+        // Set up chest indexes to place the item in. Might be only specific chest types.
+        if req.n_stacks > 0 {
+            let mut matching_indexes: Vec<usize> = chest_indexes
+                .clone()
+                .filter(|&idx| {
+                    let chest = &world.chests[idx];
+                    let type_ = world.chest_types[&(chest.x, chest.y)];
+                    req.only_in.is_empty() || req.only_in.contains(&type_)
+                })
+                .collect();
+            rng.shuffle(&mut matching_indexes);
+            req.tracker.acceptable_chest_indexes = Box::new(matching_indexes.into_iter().cycle())
+        }
     }
     for mut req in reqs {
         for _ in 0..req.n_stacks {
