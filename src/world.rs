@@ -135,6 +135,8 @@ pub enum ChestType {
     LockedJungle,
     LockedFrozen,
     Lihzahrd,
+    UnknownChest(i16),
+    UnknownDresser(i16),
 }
 
 impl ChestType {
@@ -166,9 +168,9 @@ impl ChestType {
 }
 
 impl ChestType {
-    fn from_frame_x(frame_x: i16) -> Option<Self> {
+    fn from_frame_x(frame_x: i16) -> Self {
         use self::ChestType::*;
-        Some(match frame_x {
+        match frame_x {
             0 => Plain,
             36 => Gold,
             72 => LockedGold,
@@ -188,8 +190,8 @@ impl ChestType {
             1152 => Mushroom,
             1800 => Granite,
             1836 => Marble,
-            _ => return None,
-        })
+            _ => UnknownChest(frame_x),
+        }
     }
 }
 
@@ -240,10 +242,15 @@ fn load_chest_types(
                     let x = (i / h as usize) as u16;
                     let y = (i % h as usize) as u16;
                     if frame_y == 0 {
-                        if let Some(type_) = ChestType::from_frame_x(frame_x) {
-                            chest_types.insert((x, y), type_);
-                        }
+                        let type_ = ChestType::from_frame_x(frame_x);
+                        chest_types.insert((x, y), type_);
                     }
+                } else if tile_id == 88
+                /* dresser */
+                {
+                    let x = (i / h as usize) as u16;
+                    let y = (i % h as usize) as u16;
+                    chest_types.insert((x, y), ChestType::UnknownDresser(frame_x));
                 }
             }
         }

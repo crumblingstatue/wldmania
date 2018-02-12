@@ -98,6 +98,17 @@ fn main() {
                         .required(true)
                         .help("Path to a Terraria .wld file."),
                 ),
+        )
+        .subcommand(
+            SubCommand::with_name("chest-info")
+                .about("Show infor about a chest at a particular position")
+                .arg(
+                    Arg::with_name("wld-file")
+                        .required(true)
+                        .help("Path to a Terraria .wld file."),
+                )
+                .arg(Arg::with_name("x").required(true))
+                .arg(Arg::with_name("y").required(true)),
         );
 
     let matches = app.get_matches();
@@ -128,7 +139,29 @@ fn main() {
     } else if let Some(submatches) = matches.subcommand_matches("analyze-chests") {
         let world_path = submatches.value_of("wld-file").unwrap();
         analyze_chests(world_path);
+    } else if let Some(submatches) = matches.subcommand_matches("chest-info") {
+        let world_path = submatches.value_of("wld-file").unwrap();
+        let x = submatches.value_of("x").unwrap().parse().unwrap();
+        let y = submatches.value_of("y").unwrap().parse().unwrap();
+        chest_info(world_path, x, y);
     }
+}
+
+fn chest_info(wld_path: &str, x: u16, y: u16) {
+    let world = match World::load(wld_path) {
+        Ok(world) => world,
+        Err(e) => {
+            eprintln!("Failed to load world \"{}\": {}", wld_path, e);
+            return;
+        }
+    };
+    for chest in &world.chests {
+        if chest.x == x && chest.y == y {
+            println!("{:?}", world.chest_types[&(chest.x, chest.y)]);
+            return;
+        }
+    }
+    println!("No chest at {}, {}", x, y);
 }
 
 fn generate_template_cfg(path: &str) {
