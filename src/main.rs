@@ -309,7 +309,8 @@ fn find_item(world_path: &str, name: &str) {
         for item in &chest.items[..] {
             if item.stack != 0 && item.id == i32::from(id) {
                 let pos = World::tile_to_gps_pos(w_width, w_surface_y, chest.x, chest.y);
-                println!("Found in chest at {}", pos);
+                let type_ = world.chest_types[&(chest.x, chest.y)];
+                println!("Found in {:?} chest at {}", type_, pos);
             }
         }
     }

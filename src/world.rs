@@ -4,10 +4,12 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::io::{self, SeekFrom};
 use std::fmt;
+use std::collections::HashMap;
 
 pub struct World {
     pub chests: Vec<Chest>,
-    pub width: i32,
+    pub chest_types: HashMap<(u16, u16), ChestType>,
+    pub width: u16,
     pub surface_y: f64,
     pub seed: String,
     pub npcs: Vec<Npc>,
@@ -15,7 +17,7 @@ pub struct World {
     pub spawn_y: i32,
 }
 
-struct Offsets {
+struct Header {
     header: i32,
     tiles: i32,
     chests: i32,
@@ -26,9 +28,10 @@ struct Offsets {
     unused_1: i32,
     unused_2: i32,
     unused_3: i32,
+    tile_frame_important: Vec<u8>,
 }
 
-impl Offsets {
+impl Header {
     fn write(&self, f: &mut File) -> Result<(), io::Error> {
         f.write_i32::<LE>(self.header)?;
         f.write_i32::<LE>(self.tiles)?;
@@ -44,7 +47,13 @@ impl Offsets {
     }
 }
 
-fn read_offsets(f: &mut File) -> Result<Offsets, Box<Error>> {
+fn bit_index(bytes: &[u8], idx: usize) -> bool {
+    let byte_idx = idx / 8;
+    let bit_idx = (idx % 8) as u8;
+    bsa(bytes[byte_idx], bit_idx)
+}
+
+fn read_offsets(f: &mut File) -> Result<Header, Box<Error>> {
     let _terraria_ver = f.read_i32::<LE>()?;
     let mut magic = [0u8; 7];
     f.read_exact(&mut magic)?;
@@ -71,7 +80,10 @@ fn read_offsets(f: &mut File) -> Result<Offsets, Box<Error>> {
     let unused_1 = f.read_i32::<LE>()?;
     let unused_2 = f.read_i32::<LE>()?;
     let unused_3 = f.read_i32::<LE>()?;
-    Ok(Offsets {
+    let n_tile_frame_important = f.read_i16::<LE>()? as usize;
+    let mut tile_frame_important = vec![0; n_tile_frame_important];
+    f.read_exact(&mut tile_frame_important)?;
+    Ok(Header {
         header,
         tiles,
         chests,
@@ -82,22 +94,167 @@ fn read_offsets(f: &mut File) -> Result<Offsets, Box<Error>> {
         unused_1,
         unused_2,
         unused_3,
+        tile_frame_important,
     })
 }
 
 const ITEMS_PER_CHEST: i16 = 40;
 const OFFSET_TABLE_OFFSET: u64 = 0x1A;
 
+// bit set at
+fn bsa(byte: u8, idx: u8) -> bool {
+    byte & (1 << idx) != 0
+}
+
+#[test]
+fn test_bsa() {
+    assert!(bsa(0b0000_0001, 0));
+    assert!(!bsa(0b0000_0000, 0));
+    assert!(bsa(0b0000_0010, 1));
+    assert!(bsa(0b1000_0010, 7));
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum ChestType {
+    Plain,
+    Gold,
+    Skyware,
+    Ice,
+    Granite,
+    Marble,
+    Mushroom,
+    RichMahogany,
+    Ivy,
+    Water,
+    WebCovered,
+    LockedGold,
+    LockedShadow,
+    LockedCorruption,
+    LockedCrimson,
+    LockedHallowed,
+    LockedJungle,
+    LockedFrozen,
+    Lihzahrd,
+}
+
+impl ChestType {
+    fn from_frame_x(frame_x: i16) -> Option<Self> {
+        use self::ChestType::*;
+        Some(match frame_x {
+            0 => Plain,
+            36 => Gold,
+            72 => LockedGold,
+            144 => LockedShadow,
+            288 => RichMahogany,
+            360 => Ivy,
+            396 => Ice,
+            468 => Skyware,
+            540 => WebCovered,
+            576 => Lihzahrd,
+            612 => Water,
+            828 => LockedJungle,
+            864 => LockedCorruption,
+            900 => LockedCrimson,
+            936 => LockedHallowed,
+            972 => LockedFrozen,
+            1152 => Mushroom,
+            1800 => Granite,
+            1836 => Marble,
+            _ => return None,
+        })
+    }
+}
+
+fn load_chest_types(
+    f: &mut File,
+    w: u16,
+    h: u16,
+    tile_frame_important: &[u8],
+) -> Result<HashMap<(u16, u16), ChestType>, Box<Error>> {
+    let mut chest_types = HashMap::new();
+    let mut i = 0;
+    let len: usize = w as usize * h as usize;
+    while i < len {
+        let flags1 = f.read_u8()?;
+        let flags2_present = bsa(flags1, 0);
+        let not_air = bsa(flags1, 1);
+        let has_wall = bsa(flags1, 2);
+        let liquid_type_lo = bsa(flags1, 3);
+        let liquid_type_hi = bsa(flags1, 4);
+        let long_type_id = bsa(flags1, 5);
+        let rle_on = bsa(flags1, 6);
+        let rle_on_long = bsa(flags1, 7);
+        let flags3_present = if flags2_present {
+            let flags2 = f.read_u8()?;
+            bsa(flags2, 0)
+        } else {
+            false
+        };
+        let (tile_painted, wall_painted);
+        if flags3_present {
+            let flags3 = f.read_u8()?;
+            tile_painted = bsa(flags3, 3);
+            wall_painted = bsa(flags3, 4);
+        } else {
+            tile_painted = false;
+            wall_painted = false;
+        }
+        if not_air {
+            let tile_id = if long_type_id {
+                f.read_u16::<LE>()?
+            } else {
+                u16::from(f.read_u8()?)
+            };
+            assert!(tile_id < 500);
+            if bit_index(tile_frame_important, tile_id as usize) {
+                let frame_x = f.read_i16::<LE>()?;
+                let frame_y = f.read_i16::<LE>()?;
+                if tile_id == 21 {
+                    let x = (i / h as usize) as u16;
+                    let y = (i % h as usize) as u16;
+                    if frame_y == 0 {
+                        if let Some(type_) = ChestType::from_frame_x(frame_x) {
+                            chest_types.insert((x, y), type_);
+                        }
+                    }
+                }
+            }
+        }
+        if tile_painted {
+            let _paint = f.read_u8()?;
+        }
+        if has_wall {
+            let _wall = f.read_u8()?;
+            if wall_painted {
+                let _wall_paint = f.read_u8()?;
+            }
+        }
+        if liquid_type_lo || liquid_type_hi {
+            let _liquid_volume = f.read_u8()?;
+        }
+        if rle_on || rle_on_long {
+            let rle: u16 = if rle_on_long {
+                f.read_u16::<LE>()?
+            } else {
+                u16::from(f.read_u8()?)
+            };
+            i += rle as usize;
+        }
+        i += 1;
+    }
+    Ok(chest_types)
+}
+
 impl World {
     pub fn load(path: &str) -> Result<Self, Box<Error>> {
         let mut f = File::open(path)?;
-        let offsets = read_offsets(&mut f)?;
-        f.seek(SeekFrom::Start(offsets.npcs as u64))?;
+        let header = read_offsets(&mut f)?;
+        f.seek(SeekFrom::Start(header.npcs as u64))?;
         let mut npcs = Vec::new();
         while let Some(npc) = read_npc(&mut f)? {
             npcs.push(npc);
         }
-        f.seek(SeekFrom::Start(offsets.header as u64))?;
+        f.seek(SeekFrom::Start(header.header as u64))?;
         let _name = read_string(&mut f)?;
         let seed = read_string(&mut f)?;
         let _gen_version = f.read_i64::<LE>()?;
@@ -108,7 +265,7 @@ impl World {
         let _bound_right = f.read_i32::<LE>()?;
         let _bound_top = f.read_i32::<LE>()?;
         let _bound_bottom = f.read_i32::<LE>()?;
-        let _height = f.read_i32::<LE>()?;
+        let height = f.read_i32::<LE>()?;
         let width = f.read_i32::<LE>()?;
         let _expert = f.read_u8()?;
         let _creation_time = f.read_i64::<LE>()?;
@@ -133,7 +290,14 @@ impl World {
         let spawn_x = f.read_i32::<LE>()?;
         let spawn_y = f.read_i32::<LE>()?;
         let surface_y = f.read_f64::<LE>()?;
-        f.seek(SeekFrom::Start(offsets.chests as u64))?;
+        f.seek(SeekFrom::Start(header.tiles as u64))?;
+        let chest_types = load_chest_types(
+            &mut f,
+            width as u16,
+            height as u16,
+            &header.tile_frame_important,
+        )?;
+        f.seek(SeekFrom::Start(header.chests as u64))?;
         let n_chests = f.read_i16::<LE>()?;
         let items_per_chest = f.read_i16::<LE>()?;
         if items_per_chest != ITEMS_PER_CHEST {
@@ -146,15 +310,16 @@ impl World {
         Ok(Self {
             npcs,
             chests,
-            width,
+            width: width as u16,
             surface_y,
             seed,
             spawn_x,
             spawn_y,
+            chest_types,
         })
     }
-    pub fn tile_to_gps_pos(self_width: i32, self_surface_y: f64, x: i32, y: i32) -> GpsPos {
-        let raw_x = x * 2 - self_width;
+    pub fn tile_to_gps_pos(self_width: u16, self_surface_y: f64, x: u16, y: u16) -> GpsPos {
+        let raw_x = i32::from(x) * 2 - i32::from(self_width);
         let raw_y = self_surface_y * 2.0 - f64::from(y) * 2.0;
         let x_side = if raw_x > 0 { XSide::East } else { XSide::West };
         let y_side = if raw_y > 0.0 {
@@ -212,7 +377,7 @@ impl World {
         }
         Ok(())
     }
-    pub fn width(&self) -> i32 {
+    pub fn width(&self) -> u16 {
         self.width
     }
     pub fn surface_y(&self) -> f64 {
@@ -258,16 +423,16 @@ pub enum YSide {
 const CHEST_MAX_ITEMS: i8 = 40;
 
 pub struct Chest {
-    pub x: i32,
-    pub y: i32,
+    pub x: u16,
+    pub y: u16,
     pub name: String,
     pub items: [Item; CHEST_MAX_ITEMS as usize],
 }
 
 impl Chest {
     fn read(f: &mut File) -> io::Result<Self> {
-        let x = f.read_i32::<LE>()?;
-        let y = f.read_i32::<LE>()?;
+        let x = f.read_i32::<LE>()? as u16;
+        let y = f.read_i32::<LE>()? as u16;
         let name = read_string(f)?;
         let mut items: [Item; CHEST_MAX_ITEMS as usize] = unsafe { ::std::mem::uninitialized() };
         for item in &mut items[..] {
@@ -276,8 +441,8 @@ impl Chest {
         Ok(Self { name, x, y, items })
     }
     fn write(&self, f: &mut File) -> io::Result<()> {
-        f.write_i32::<LE>(self.x)?;
-        f.write_i32::<LE>(self.y)?;
+        f.write_i32::<LE>(i32::from(self.x))?;
+        f.write_i32::<LE>(i32::from(self.y))?;
         write_string(f, &self.name)?;
         for item in self.items.iter() {
             item.write(f)?;
