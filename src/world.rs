@@ -205,7 +205,6 @@ fn load_chest_types(
             } else {
                 u16::from(f.read_u8()?)
             };
-            assert!(tile_id < 500);
             if bit_index(tile_frame_important, tile_id as usize) {
                 let frame_x = f.read_i16::<LE>()?;
                 let frame_y = f.read_i16::<LE>()?;
