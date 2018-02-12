@@ -30,6 +30,7 @@ fn parse_only_in(seg: &str) -> Result<Segment, Box<Error>> {
     let mut only_in = Vec::new();
     let names = seg.split('/');
     for name in names {
+        let name = name.trim();
         match ChestType::from_str(name) {
             Some(type_) => only_in.push(type_),
             None => return Err(format!("Invalid chest type: {}", name).into()),
