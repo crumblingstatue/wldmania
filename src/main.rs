@@ -101,7 +101,7 @@ fn main() {
         )
         .subcommand(
             SubCommand::with_name("chest-info")
-                .about("Show infor about a chest at a particular position")
+                .about("Show info about a chest at a particular position")
                 .arg(
                     Arg::with_name("wld-file")
                         .required(true)
