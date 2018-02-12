@@ -114,7 +114,7 @@ fn test_bsa() {
     assert!(bsa(0b1000_0010, 7));
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ChestType {
     Plain,
     Gold,
@@ -135,6 +135,34 @@ pub enum ChestType {
     LockedJungle,
     LockedFrozen,
     Lihzahrd,
+}
+
+impl ChestType {
+    pub fn from_str(s: &str) -> Option<Self> {
+        use self::ChestType::*;
+        Some(match &s.to_lowercase()[..] {
+            "plain" | "wooden" => Plain,
+            "gold" => Gold,
+            "sky" | "skyware" => Skyware,
+            "ice" => Ice,
+            "granite" => Granite,
+            "marble" => Marble,
+            "mushroom" => Mushroom,
+            "rich mahogany" | "mahogany" => RichMahogany,
+            "ivy" => Ivy,
+            "water" => Water,
+            "web" | "web covered" => WebCovered,
+            "locked gold" => LockedGold,
+            "locked shadow" => LockedShadow,
+            "locked corruption" => LockedCorruption,
+            "locked crimson" => LockedCrimson,
+            "locked hallowed" => LockedHallowed,
+            "locked jungle" => LockedJungle,
+            "locked frozen" => LockedFrozen,
+            "lihzahrd" => Lihzahrd,
+            _ => return None,
+        })
+    }
 }
 
 impl ChestType {
