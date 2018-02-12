@@ -317,7 +317,17 @@ fn place_in_chest(
 
 fn bless_chests(cfg_path: &str, world_path: &str) {
     let item_ids = read_item_ids();
-    let reqs = req_file::from_path::<()>(cfg_path.as_ref(), &item_ids).unwrap();
+    struct Tracker {
+        acceptable_chest_indexes: Box<Iterator<Item = usize>>,
+    }
+    impl Default for Tracker {
+        fn default() -> Self {
+            Self {
+                acceptable_chest_indexes: Box::new(::std::iter::empty()),
+            }
+        }
+    }
+    let mut reqs = req_file::from_path::<Tracker>(cfg_path.as_ref(), &item_ids).unwrap();
     let mut world = match World::load(world_path) {
         Ok(world) => world,
         Err(e) => {
@@ -326,12 +336,23 @@ fn bless_chests(cfg_path: &str, world_path: &str) {
         }
     };
     let mut rng = thread_rng();
-    let mut chest_indexes: Vec<usize> = (0..world.chests.len()).collect();
-    rng.shuffle(&mut chest_indexes);
-    let mut chest_indexes = chest_indexes.into_iter().cycle();
-    for req in reqs {
+    let chest_indexes = 0..world.chests.len();
+    for req in &mut reqs {
+        // chest type of chest at index matches any of required chest types
+        let mut matching_indexes: Vec<usize> = chest_indexes
+            .clone()
+            .filter(|&idx| {
+                let chest = &world.chests[idx];
+                let type_ = world.chest_types[&(chest.x, chest.y)];
+                req.only_in.is_empty() || req.only_in.contains(&type_)
+            })
+            .collect();
+        rng.shuffle(&mut matching_indexes);
+        req.tracker.acceptable_chest_indexes = Box::new(matching_indexes.into_iter().cycle())
+    }
+    for mut req in reqs {
         for _ in 0..req.n_stacks {
-            let chest = &mut world.chests[chest_indexes.next().unwrap()];
+            let chest = &mut world.chests[req.tracker.acceptable_chest_indexes.next().unwrap()];
             place_in_chest(
                 chest,
                 i32::from(req.id),
