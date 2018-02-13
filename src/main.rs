@@ -6,7 +6,7 @@ extern crate byteorder;
 extern crate clap;
 extern crate rand;
 
-use world::World;
+use world::WorldFile;
 use clap::{App, AppSettings, Arg, SubCommand};
 use std::fs::File;
 use std::io::{self, prelude::*};
@@ -15,6 +15,7 @@ use std::collections::HashMap;
 use bidir_map::BidirMap;
 use rand::{thread_rng, Rng, ThreadRng};
 use std::error::Error;
+use std::path::Path;
 
 mod world;
 mod req_file;
@@ -128,23 +129,23 @@ fn run() -> Result<(), Box<Error>> {
         } else {
             let req_path = submatches.value_of("req-file").unwrap();
             let world_path = submatches.value_of("wld-file").unwrap();
-            bless_chests(req_path, world_path)?;
+            bless_chests(req_path, world_path.as_ref())?;
         }
     } else if let Some(submatches) = matches.subcommand_matches("find") {
         let world_path = submatches.value_of("wld-file").unwrap();
         let item_name = submatches.value_of("item-name").unwrap();
-        find_item(world_path, item_name)?;
+        find_item(world_path.as_ref(), item_name)?;
     } else if let Some(submatches) = matches.subcommand_matches("fix-npcs") {
         let world_path = submatches.value_of("wld-file").unwrap();
-        fix_npcs(world_path)?;
+        fix_npcs(world_path.as_ref())?;
     } else if let Some(submatches) = matches.subcommand_matches("analyze-chests") {
         let world_path = submatches.value_of("wld-file").unwrap();
-        analyze_chests(world_path)?;
+        analyze_chests(world_path.as_ref())?;
     } else if let Some(submatches) = matches.subcommand_matches("chest-info") {
         let world_path = submatches.value_of("wld-file").unwrap();
         let x = submatches.value_of("x").unwrap().parse()?;
         let y = submatches.value_of("y").unwrap().parse()?;
-        chest_info(world_path, x, y);
+        chest_info(world_path.as_ref(), x, y).unwrap();
     }
     Ok(())
 }
@@ -155,21 +156,19 @@ fn main() {
     }
 }
 
-fn chest_info(wld_path: &str, x: u16, y: u16) {
-    let world = match World::load(wld_path) {
-        Ok(world) => world,
-        Err(e) => {
-            eprintln!("Failed to load world \"{}\": {}", wld_path, e);
-            return;
-        }
-    };
-    for chest in &world.chests {
+fn chest_info(wld_path: &Path, x: u16, y: u16) -> Result<(), Box<Error>> {
+    let mut file = WorldFile::open(wld_path)?;
+    let chests = file.read_chests()?;
+    let basic_info = file.read_basic_info()?;
+    let chest_types = file.read_chest_types(&basic_info)?;
+    for chest in &chests {
         if chest.x == x && chest.y == y {
-            println!("{:?}", world.chest_types[&(chest.x, chest.y)]);
-            return;
+            println!("{:?}", chest_types[&(chest.x, chest.y)]);
+            return Ok(());
         }
     }
     println!("No chest at {}, {}", x, y);
+    Ok(())
 }
 
 fn generate_template_cfg(path: &str) -> io::Result<()> {
@@ -204,9 +203,9 @@ fn itemhunt<'a, I: Iterator<Item = &'a str>>(
     let mut required_items = req_file::from_path::<u16>(cfg_path.as_ref(), &id_map)?;
     let mut n_meet_reqs = 0;
     for world_path in world_paths {
-        let world = World::load(world_path)?;
-        println!("{} ({}):", world_path, world.seed);
-        for chest in &world.chests[..] {
+        let mut file = WorldFile::open(world_path.as_ref())?;
+        let chests = file.read_chests()?;
+        for chest in &chests[..] {
             for item in &chest.items[..] {
                 if item.stack != 0 {
                     for req in &mut required_items {
@@ -243,39 +242,41 @@ fn itemhunt<'a, I: Iterator<Item = &'a str>>(
     Ok(())
 }
 
-fn find_item(world_path: &str, name: &str) -> Result<(), Box<Error>> {
+fn find_item(world_path: &Path, name: &str) -> Result<(), Box<Error>> {
     let ids = item_ids();
     let id = ids.id_by_name(name)
         .ok_or_else(|| format!("No matching id found for item '{}'", name))?;
-    let world = World::load(world_path)?;
-    let (w_width, w_surface_y) = (world.width(), world.surface_y());
-    for chest in &world.chests[..] {
+    let mut file = WorldFile::open(world_path)?;
+    let basic_info = file.read_basic_info()?;
+    let chests = file.read_chests()?;
+    for chest in &chests[..] {
         for item in &chest.items[..] {
             if item.stack != 0 && item.id == i32::from(id) {
-                let pos = World::tile_to_gps_pos(w_width, w_surface_y, chest.x, chest.y);
-                let type_ = world.chest_types[&(chest.x, chest.y)];
-                println!("Found in {:?} chest at {}", type_, pos);
+                let pos = basic_info.tile_to_gps_pos(chest.x, chest.y);
+                println!("Found in chest at {}", pos);
             }
         }
     }
     Ok(())
 }
 
-fn fix_npcs(world_path: &str) -> Result<(), Box<Error>> {
-    let mut world = World::load(world_path)?;
+fn fix_npcs(world_path: &Path) -> Result<(), Box<Error>> {
+    let mut file = WorldFile::open(world_path)?;
+    let basic_info = file.read_basic_info()?;
+    let mut npcs = file.read_npcs()?;
     let mut fixed_any = false;
-    for npc in &mut world.npcs {
+    for npc in &mut npcs {
         if npc.x.is_nan() || npc.y.is_nan() {
             // TODO: Need proper conversion from tile to entity coordinates.
             // Try multiplying by 16.
-            npc.x = world.spawn_x as f32 * 16.;
-            npc.y = world.spawn_y as f32 * 16.;
+            npc.x = basic_info.spawn_x as f32 * 16.;
+            npc.y = basic_info.spawn_y as f32 * 16.;
             fixed_any = true;
             println!("{} has NaN position, reset to spawn.", npc.name);
         }
     }
     if fixed_any {
-        world.patch_npcs(world_path)?;
+        file.write_npcs(&npcs)?;
     } else {
         println!("No NPCs needed fixing.");
     }
@@ -303,7 +304,7 @@ fn place_in_chest(
     }
 }
 
-fn bless_chests(cfg_path: &str, world_path: &str) -> Result<(), Box<Error>> {
+fn bless_chests(cfg_path: &str, world_path: &Path) -> Result<(), Box<Error>> {
     let item_ids = item_ids();
     struct Tracker {
         acceptable_chest_indexes: Box<Iterator<Item = usize>>,
@@ -316,12 +317,15 @@ fn bless_chests(cfg_path: &str, world_path: &str) -> Result<(), Box<Error>> {
         }
     }
     let mut reqs = req_file::from_path::<Tracker>(cfg_path.as_ref(), &item_ids)?;
-    let mut world = World::load(world_path)?;
+    let mut file = WorldFile::open(world_path)?;
+    let mut chests = file.read_chests()?;
+    let basic_info = file.read_basic_info()?;
+    let chest_types = file.read_chest_types(&basic_info)?;
     let mut rng = thread_rng();
-    let chest_indexes = 0..world.chests.len();
+    let chest_indexes = 0..chests.len();
     for req in &mut reqs {
         // Decrease stack count for every item that already exists in the world
-        for chest in &world.chests[..] {
+        for chest in &chests[..] {
             for item in &chest.items[..] {
                 if item.stack != 0 && item.id == i32::from(req.id) && req.n_stacks > 0 {
                     req.n_stacks -= 1;
@@ -333,8 +337,8 @@ fn bless_chests(cfg_path: &str, world_path: &str) -> Result<(), Box<Error>> {
             let mut matching_indexes: Vec<usize> = chest_indexes
                 .clone()
                 .filter(|&idx| {
-                    let chest = &world.chests[idx];
-                    let type_ = world.chest_types[&(chest.x, chest.y)];
+                    let chest = &chests[idx];
+                    let type_ = chest_types[&(chest.x, chest.y)];
                     req.only_in.is_empty() || req.only_in.contains(&type_)
                 })
                 .collect();
@@ -344,7 +348,7 @@ fn bless_chests(cfg_path: &str, world_path: &str) -> Result<(), Box<Error>> {
     }
     for mut req in reqs {
         for _ in 0..req.n_stacks {
-            let chest = &mut world.chests[req.tracker.acceptable_chest_indexes.next().unwrap()];
+            let chest = &mut chests[req.tracker.acceptable_chest_indexes.next().unwrap()];
             place_in_chest(
                 chest,
                 i32::from(req.id),
@@ -354,19 +358,20 @@ fn bless_chests(cfg_path: &str, world_path: &str) -> Result<(), Box<Error>> {
             );
         }
     }
-    world.patch_chests(world_path)?;
+    file.write_chests(&chests)?;
     Ok(())
 }
 
-fn analyze_chests(world_path: &str) -> Result<(), Box<Error>> {
-    let world = World::load(world_path)?;
+fn analyze_chests(world_path: &Path) -> Result<(), Box<Error>> {
+    let mut file = WorldFile::open(world_path)?;
+    let chests = file.read_chests()?;
     #[derive(Debug)]
     struct ItemStat {
         stack_count: u32,
         total_count: u32,
     }
     let mut item_stats: HashMap<i32, ItemStat> = HashMap::new();
-    for chest in &world.chests {
+    for chest in &chests {
         for item in chest.items.iter() {
             if item.stack != 0 {
                 match item_stats.get_mut(&item.id) {

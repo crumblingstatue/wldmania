@@ -5,16 +5,150 @@ use std::io::prelude::*;
 use std::io::{self, SeekFrom};
 use std::fmt;
 use std::collections::HashMap;
+use std::path::Path;
 
-pub struct World {
-    pub chests: Vec<Chest>,
-    pub chest_types: HashMap<(u16, u16), ChestType>,
+pub struct BasicInfo {
+    pub height: u16,
     pub width: u16,
     pub surface_y: f64,
     pub seed: String,
-    pub npcs: Vec<Npc>,
     pub spawn_x: i32,
     pub spawn_y: i32,
+}
+
+pub struct WorldFile {
+    file: File,
+    header: Header,
+}
+
+impl WorldFile {
+    pub fn open(path: &Path) -> Result<Self, Box<Error>> {
+        use std::fs::OpenOptions;
+        let mut f = OpenOptions::new().read(true).write(true).open(path)?;
+        let header = read_offsets(&mut f)?;
+        Ok(Self { file: f, header })
+    }
+    pub fn read_npcs(&mut self) -> Result<Vec<Npc>, Box<Error>> {
+        self.file.seek(SeekFrom::Start(self.header.npcs as u64))?;
+        let mut npcs = Vec::new();
+        while let Some(npc) = read_npc(&mut self.file)? {
+            npcs.push(npc);
+        }
+        Ok(npcs)
+    }
+    pub fn read_basic_info(&mut self) -> Result<BasicInfo, Box<Error>> {
+        let f = &mut self.file;
+        f.seek(SeekFrom::Start(self.header.header as u64))?;
+        let _name = read_string(f)?;
+        let seed = read_string(f)?;
+        let _gen_version = f.read_i64::<LE>()?;
+        let mut guid = [0u8; 16];
+        f.read_exact(&mut guid)?;
+        let _id = f.read_i32::<LE>()?;
+        let _bound_left = f.read_i32::<LE>()?;
+        let _bound_right = f.read_i32::<LE>()?;
+        let _bound_top = f.read_i32::<LE>()?;
+        let _bound_bottom = f.read_i32::<LE>()?;
+        let height = f.read_i32::<LE>()?;
+        let width = f.read_i32::<LE>()?;
+        let _expert = f.read_u8()?;
+        let _creation_time = f.read_i64::<LE>()?;
+        let _moon_type = f.read_u8()?;
+        let _tree_x_1 = f.read_i32::<LE>()?;
+        let _tree_x_2 = f.read_i32::<LE>()?;
+        let _tree_x_3 = f.read_i32::<LE>()?;
+        let _tree_style_1 = f.read_i32::<LE>()?;
+        let _tree_style_2 = f.read_i32::<LE>()?;
+        let _tree_style_3 = f.read_i32::<LE>()?;
+        let _tree_style_4 = f.read_i32::<LE>()?;
+        let _cave_back_1 = f.read_i32::<LE>()?;
+        let _cave_back_2 = f.read_i32::<LE>()?;
+        let _cave_back_3 = f.read_i32::<LE>()?;
+        let _cave_back_style_1 = f.read_i32::<LE>()?;
+        let _cave_back_style_2 = f.read_i32::<LE>()?;
+        let _cave_back_style_3 = f.read_i32::<LE>()?;
+        let _cave_back_style_4 = f.read_i32::<LE>()?;
+        let _ice_back_style = f.read_i32::<LE>()?;
+        let _jungle_back_style = f.read_i32::<LE>()?;
+        let _hell_back_style = f.read_i32::<LE>()?;
+        let spawn_x = f.read_i32::<LE>()?;
+        let spawn_y = f.read_i32::<LE>()?;
+        let surface_y = f.read_f64::<LE>()?;
+        Ok(BasicInfo {
+            width: width as u16,
+            height: height as u16,
+            surface_y,
+            seed,
+            spawn_x,
+            spawn_y,
+        })
+    }
+    pub fn read_chest_types(
+        &mut self,
+        basic_info: &BasicInfo,
+    ) -> Result<HashMap<(u16, u16), ChestType>, Box<Error>> {
+        self.file.seek(SeekFrom::Start(self.header.tiles as u64))?;
+        let chest_types = load_chest_types(
+            &mut self.file,
+            basic_info.width,
+            basic_info.height,
+            &self.header.tile_frame_important,
+        )?;
+        Ok(chest_types)
+    }
+    pub fn read_chests(&mut self) -> Result<Vec<Chest>, Box<Error>> {
+        let f = &mut self.file;
+        f.seek(SeekFrom::Start(self.header.chests as u64))?;
+        let n_chests = f.read_i16::<LE>()?;
+        let items_per_chest = f.read_i16::<LE>()?;
+        if items_per_chest != ITEMS_PER_CHEST {
+            return Err(format!("Unsupported items per chest: {}", items_per_chest).into());
+        }
+        let mut chests = Vec::new();
+        for _ in 0..n_chests {
+            chests.push(Chest::read(f)?);
+        }
+        Ok(chests)
+    }
+    pub fn write_npcs(&mut self, npcs: &[Npc]) -> Result<(), Box<Error>> {
+        let f = &mut self.file;
+        f.seek(SeekFrom::Start(self.header.npcs as u64))?;
+        for npc in npcs {
+            write_npc(f, npc)?;
+        }
+        Ok(())
+    }
+    pub fn write_chests(&mut self, chests: &[Chest]) -> Result<(), Box<Error>> {
+        // Save the contents after chests into a buffer to write back later
+        self.file.seek(SeekFrom::Start(self.header.signs as u64))?;
+        let mut rest_buf = Vec::new();
+        self.file.read_to_end(&mut rest_buf)?;
+        self.file.seek(SeekFrom::Start(self.header.chests as u64))?;
+        self.write_chests_inner(chests)?;
+        let new_signs_offset = self.file.seek(SeekFrom::Current(0))?;
+        // Write back everything after chests
+        self.file.write_all(&rest_buf)?;
+        let offs_diff = new_signs_offset as i32 - self.header.signs as i32;
+        self.file.seek(SeekFrom::Start(OFFSET_TABLE_OFFSET))?;
+        self.header.signs += offs_diff;
+        self.header.npcs += offs_diff;
+        self.header.entities += offs_diff;
+        self.header.footer += offs_diff;
+        self.header.unused_1 += offs_diff;
+        self.header.unused_2 += offs_diff;
+        self.header.unused_3 += offs_diff;
+        self.header.write(&mut self.file)?;
+        Ok(())
+    }
+    fn write_chests_inner(&mut self, chests: &[Chest]) -> Result<(), Box<Error>> {
+        let f = &mut self.file;
+        f.write_i16::<LE>(chests.len() as i16)?;
+        f.write_i16::<LE>(ITEMS_PER_CHEST)?;
+        for chest in chests {
+            chest.write(f)?;
+        }
+        Ok(())
+    }
 }
 
 struct Header {
@@ -279,82 +413,10 @@ fn load_chest_types(
     Ok(chest_types)
 }
 
-impl World {
-    pub fn load(path: &str) -> Result<Self, Box<Error>> {
-        let mut f = File::open(path)?;
-        let header = read_offsets(&mut f)?;
-        f.seek(SeekFrom::Start(header.npcs as u64))?;
-        let mut npcs = Vec::new();
-        while let Some(npc) = read_npc(&mut f)? {
-            npcs.push(npc);
-        }
-        f.seek(SeekFrom::Start(header.header as u64))?;
-        let _name = read_string(&mut f)?;
-        let seed = read_string(&mut f)?;
-        let _gen_version = f.read_i64::<LE>()?;
-        let mut guid = [0u8; 16];
-        f.read_exact(&mut guid)?;
-        let _id = f.read_i32::<LE>()?;
-        let _bound_left = f.read_i32::<LE>()?;
-        let _bound_right = f.read_i32::<LE>()?;
-        let _bound_top = f.read_i32::<LE>()?;
-        let _bound_bottom = f.read_i32::<LE>()?;
-        let height = f.read_i32::<LE>()?;
-        let width = f.read_i32::<LE>()?;
-        let _expert = f.read_u8()?;
-        let _creation_time = f.read_i64::<LE>()?;
-        let _moon_type = f.read_u8()?;
-        let _tree_x_1 = f.read_i32::<LE>()?;
-        let _tree_x_2 = f.read_i32::<LE>()?;
-        let _tree_x_3 = f.read_i32::<LE>()?;
-        let _tree_style_1 = f.read_i32::<LE>()?;
-        let _tree_style_2 = f.read_i32::<LE>()?;
-        let _tree_style_3 = f.read_i32::<LE>()?;
-        let _tree_style_4 = f.read_i32::<LE>()?;
-        let _cave_back_1 = f.read_i32::<LE>()?;
-        let _cave_back_2 = f.read_i32::<LE>()?;
-        let _cave_back_3 = f.read_i32::<LE>()?;
-        let _cave_back_style_1 = f.read_i32::<LE>()?;
-        let _cave_back_style_2 = f.read_i32::<LE>()?;
-        let _cave_back_style_3 = f.read_i32::<LE>()?;
-        let _cave_back_style_4 = f.read_i32::<LE>()?;
-        let _ice_back_style = f.read_i32::<LE>()?;
-        let _jungle_back_style = f.read_i32::<LE>()?;
-        let _hell_back_style = f.read_i32::<LE>()?;
-        let spawn_x = f.read_i32::<LE>()?;
-        let spawn_y = f.read_i32::<LE>()?;
-        let surface_y = f.read_f64::<LE>()?;
-        f.seek(SeekFrom::Start(header.tiles as u64))?;
-        let chest_types = load_chest_types(
-            &mut f,
-            width as u16,
-            height as u16,
-            &header.tile_frame_important,
-        )?;
-        f.seek(SeekFrom::Start(header.chests as u64))?;
-        let n_chests = f.read_i16::<LE>()?;
-        let items_per_chest = f.read_i16::<LE>()?;
-        if items_per_chest != ITEMS_PER_CHEST {
-            return Err(format!("Unsupported items per chest: {}", items_per_chest).into());
-        }
-        let mut chests = Vec::new();
-        for _ in 0..n_chests {
-            chests.push(Chest::read(&mut f)?);
-        }
-        Ok(Self {
-            npcs,
-            chests,
-            width: width as u16,
-            surface_y,
-            seed,
-            spawn_x,
-            spawn_y,
-            chest_types,
-        })
-    }
-    pub fn tile_to_gps_pos(self_width: u16, self_surface_y: f64, x: u16, y: u16) -> GpsPos {
-        let raw_x = i32::from(x) * 2 - i32::from(self_width);
-        let raw_y = self_surface_y * 2.0 - f64::from(y) * 2.0;
+impl BasicInfo {
+    pub fn tile_to_gps_pos(&self, x: u16, y: u16) -> GpsPos {
+        let raw_x = i32::from(x) * 2 - i32::from(self.width);
+        let raw_y = self.surface_y * 2.0 - f64::from(y) * 2.0;
         let x_side = if raw_x > 0 { XSide::East } else { XSide::West };
         let y_side = if raw_y > 0.0 {
             YSide::AboveSurface
@@ -367,55 +429,6 @@ impl World {
             x_side,
             y_side,
         }
-    }
-    pub fn patch_npcs(&self, file_path: &str) -> Result<(), Box<Error>> {
-        use std::fs::OpenOptions;
-        let mut f = OpenOptions::new().read(true).write(true).open(file_path)?;
-        let offsets = read_offsets(&mut f)?;
-        f.seek(SeekFrom::Start(offsets.npcs as u64))?;
-        for npc in &self.npcs {
-            write_npc(&mut f, npc)?;
-        }
-        Ok(())
-    }
-    pub fn patch_chests(&self, file_path: &str) -> Result<(), Box<Error>> {
-        use std::fs::OpenOptions;
-        let mut f = OpenOptions::new().read(true).write(true).open(file_path)?;
-        let mut offsets = read_offsets(&mut f)?;
-        // Save the contents after chests into a buffer to write back later
-        f.seek(SeekFrom::Start(offsets.signs as u64))?;
-        let mut rest_buf = Vec::new();
-        f.read_to_end(&mut rest_buf)?;
-        f.seek(SeekFrom::Start(offsets.chests as u64))?;
-        self.write_chests(&mut f)?;
-        let new_signs_offset = f.seek(SeekFrom::Current(0))?;
-        // Write back everything after chests
-        f.write_all(&rest_buf)?;
-        let offs_diff = new_signs_offset as i32 - offsets.signs as i32;
-        f.seek(SeekFrom::Start(OFFSET_TABLE_OFFSET))?;
-        offsets.signs += offs_diff;
-        offsets.npcs += offs_diff;
-        offsets.entities += offs_diff;
-        offsets.footer += offs_diff;
-        offsets.unused_1 += offs_diff;
-        offsets.unused_2 += offs_diff;
-        offsets.unused_3 += offs_diff;
-        offsets.write(&mut f)?;
-        Ok(())
-    }
-    fn write_chests(&self, f: &mut File) -> Result<(), Box<Error>> {
-        f.write_i16::<LE>(self.chests.len() as i16)?;
-        f.write_i16::<LE>(ITEMS_PER_CHEST)?;
-        for chest in &self.chests {
-            chest.write(f)?;
-        }
-        Ok(())
-    }
-    pub fn width(&self) -> u16 {
-        self.width
-    }
-    pub fn surface_y(&self) -> f64 {
-        self.surface_y
     }
 }
 
