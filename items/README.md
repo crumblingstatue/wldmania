@@ -1,4 +1,4 @@
-items.csv is copied from https://github.com/cr0wst/terraria-info
+id<->name mappings are taken from `items.csv` in https://github.com/cr0wst/terraria-info
 
 Below is the readme of cr0wst/terraria-info:
 

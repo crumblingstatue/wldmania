@@ -4,7 +4,6 @@ extern crate ansi_term;
 extern crate bidir_map;
 extern crate byteorder;
 extern crate clap;
-extern crate csv;
 extern crate rand;
 
 use world::World;
@@ -19,6 +18,7 @@ use std::error::Error;
 
 mod world;
 mod req_file;
+mod item_id_pairs;
 
 fn run() -> Result<(), Box<Error>> {
     let app = App::new("wldmania")
@@ -177,32 +177,30 @@ fn generate_template_cfg(path: &str) -> io::Result<()> {
     f.write_all(include_bytes!("../templates/itemhunt.list"))
 }
 
-pub struct ItemIdMap(BidirMap<u16, String>);
+pub struct ItemIdMap(BidirMap<u16, &'static str>);
 
 impl ItemIdMap {
     fn name_by_id(&self, id: u16) -> Option<&str> {
-        self.0.get_by_first(&id).map(String::as_str)
+        self.0.get_by_first(&id).cloned()
     }
     fn id_by_name(&self, name: &str) -> Option<u16> {
-        self.0.get_by_second(&name.to_lowercase()).cloned()
+        self.0.get_by_second(&&name.to_lowercase()[..]).cloned()
     }
 }
 
-fn read_item_ids() -> Result<ItemIdMap, Box<Error>> {
-    let mut rdr = csv::Reader::from_path("./items/items.csv")?;
+fn item_ids() -> ItemIdMap {
     let mut item_ids = BidirMap::new();
-    for result in rdr.records() {
-        let record = result?;
-        item_ids.insert(record[0].parse()?, record[1].to_lowercase());
+    for &(id, name) in item_id_pairs::ITEM_ID_PAIRS {
+        item_ids.insert(id, name);
     }
-    Ok(ItemIdMap(item_ids))
+    ItemIdMap(item_ids)
 }
 
 fn itemhunt<'a, I: Iterator<Item = &'a str>>(
     cfg_path: &str,
     world_paths: I,
 ) -> Result<(), Box<Error>> {
-    let id_map = read_item_ids()?;
+    let id_map = item_ids();
     let mut required_items = req_file::from_path::<u16>(cfg_path.as_ref(), &id_map)?;
     let mut n_meet_reqs = 0;
     for world_path in world_paths {
@@ -246,7 +244,7 @@ fn itemhunt<'a, I: Iterator<Item = &'a str>>(
 }
 
 fn find_item(world_path: &str, name: &str) -> Result<(), Box<Error>> {
-    let ids = read_item_ids()?;
+    let ids = item_ids();
     let id = ids.id_by_name(name)
         .ok_or_else(|| format!("No matching id found for item '{}'", name))?;
     let world = World::load(world_path)?;
@@ -306,7 +304,7 @@ fn place_in_chest(
 }
 
 fn bless_chests(cfg_path: &str, world_path: &str) -> Result<(), Box<Error>> {
-    let item_ids = read_item_ids()?;
+    let item_ids = item_ids();
     struct Tracker {
         acceptable_chest_indexes: Box<Iterator<Item = usize>>,
     }
@@ -391,7 +389,7 @@ fn analyze_chests(world_path: &str) -> Result<(), Box<Error>> {
     }
     let mut vec = item_stats.into_iter().collect::<Vec<_>>();
     vec.sort_by(|&(_, ref v1), &(_, ref v2)| v1.stack_count.cmp(&v2.stack_count).reverse());
-    let ids = read_item_ids()?;
+    let ids = item_ids();
     println!("{:30}stack total", "name");
     for (k, v) in vec {
         println!(
