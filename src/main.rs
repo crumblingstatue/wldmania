@@ -10,16 +10,17 @@ extern crate rand;
 use world::World;
 use clap::{App, AppSettings, Arg, SubCommand};
 use std::fs::File;
-use std::io::prelude::*;
+use std::io::{self, prelude::*};
 use ansi_term::Colour::{Green, Red};
 use std::collections::HashMap;
 use bidir_map::BidirMap;
 use rand::{thread_rng, Rng, ThreadRng};
+use std::error::Error;
 
 mod world;
 mod req_file;
 
-fn main() {
+fn run() -> Result<(), Box<Error>> {
     let app = App::new("wldmania")
         .version(env!("CARGO_PKG_VERSION"))
         .about("Terraria world inspection/manupilation tool")
@@ -115,35 +116,42 @@ fn main() {
 
     if let Some(submatches) = matches.subcommand_matches("itemhunt") {
         if let Some(template_cfg_path) = submatches.value_of("gen") {
-            generate_template_cfg(template_cfg_path);
+            generate_template_cfg(template_cfg_path)?;
         } else {
             let req_path = submatches.value_of("req-file").unwrap();
             let world_paths = submatches.values_of("wld-file").unwrap();
-            itemhunt(req_path, world_paths);
+            itemhunt(req_path, world_paths)?;
         }
     } else if let Some(submatches) = matches.subcommand_matches("bless-chests") {
         if let Some(template_cfg_path) = submatches.value_of("gen") {
-            generate_template_cfg(template_cfg_path);
+            generate_template_cfg(template_cfg_path)?;
         } else {
             let req_path = submatches.value_of("req-file").unwrap();
             let world_path = submatches.value_of("wld-file").unwrap();
-            bless_chests(req_path, world_path);
+            bless_chests(req_path, world_path)?;
         }
     } else if let Some(submatches) = matches.subcommand_matches("find") {
         let world_path = submatches.value_of("wld-file").unwrap();
         let item_name = submatches.value_of("item-name").unwrap();
-        find_item(world_path, item_name);
+        find_item(world_path, item_name)?;
     } else if let Some(submatches) = matches.subcommand_matches("fix-npcs") {
         let world_path = submatches.value_of("wld-file").unwrap();
-        fix_npcs(world_path);
+        fix_npcs(world_path)?;
     } else if let Some(submatches) = matches.subcommand_matches("analyze-chests") {
         let world_path = submatches.value_of("wld-file").unwrap();
-        analyze_chests(world_path);
+        analyze_chests(world_path)?;
     } else if let Some(submatches) = matches.subcommand_matches("chest-info") {
         let world_path = submatches.value_of("wld-file").unwrap();
-        let x = submatches.value_of("x").unwrap().parse().unwrap();
-        let y = submatches.value_of("y").unwrap().parse().unwrap();
+        let x = submatches.value_of("x").unwrap().parse()?;
+        let y = submatches.value_of("y").unwrap().parse()?;
         chest_info(world_path, x, y);
+    }
+    Ok(())
+}
+
+fn main() {
+    if let Err(e) = run() {
+        eprintln!("Error: {}", e);
     }
 }
 
@@ -164,10 +172,9 @@ fn chest_info(wld_path: &str, x: u16, y: u16) {
     println!("No chest at {}, {}", x, y);
 }
 
-fn generate_template_cfg(path: &str) {
-    let mut f = File::create(path).unwrap();
+fn generate_template_cfg(path: &str) -> io::Result<()> {
+    let mut f = File::create(path)?;
     f.write_all(include_bytes!("../templates/itemhunt.list"))
-        .unwrap();
 }
 
 pub struct ItemIdMap(BidirMap<u16, String>);
@@ -181,28 +188,25 @@ impl ItemIdMap {
     }
 }
 
-fn read_item_ids() -> ItemIdMap {
-    let mut rdr = csv::Reader::from_path("./items/items.csv").unwrap();
+fn read_item_ids() -> Result<ItemIdMap, Box<Error>> {
+    let mut rdr = csv::Reader::from_path("./items/items.csv")?;
     let mut item_ids = BidirMap::new();
     for result in rdr.records() {
-        let record = result.unwrap();
-        item_ids.insert(record[0].parse().unwrap(), record[1].to_lowercase());
+        let record = result?;
+        item_ids.insert(record[0].parse()?, record[1].to_lowercase());
     }
-    ItemIdMap(item_ids)
+    Ok(ItemIdMap(item_ids))
 }
 
-fn itemhunt<'a, I: Iterator<Item = &'a str>>(cfg_path: &str, world_paths: I) {
-    let id_map = read_item_ids();
-    let mut required_items = req_file::from_path::<u16>(cfg_path.as_ref(), &id_map).unwrap();
+fn itemhunt<'a, I: Iterator<Item = &'a str>>(
+    cfg_path: &str,
+    world_paths: I,
+) -> Result<(), Box<Error>> {
+    let id_map = read_item_ids()?;
+    let mut required_items = req_file::from_path::<u16>(cfg_path.as_ref(), &id_map)?;
     let mut n_meet_reqs = 0;
     for world_path in world_paths {
-        let world = match World::load(world_path) {
-            Ok(world) => world,
-            Err(e) => {
-                eprintln!("Failed to load world \"{}\": {}", world_path, e);
-                return;
-            }
-        };
+        let world = World::load(world_path)?;
         println!("{} ({}):", world_path, world.seed);
         for chest in &world.chests[..] {
             for item in &chest.items[..] {
@@ -221,7 +225,7 @@ fn itemhunt<'a, I: Iterator<Item = &'a str>>(cfg_path: &str, world_paths: I) {
                 didnt_meet_reqs = true;
                 let msg = format!(
                     "{} - {}/{}",
-                    id_map.name_by_id(req.id).unwrap(),
+                    id_map.name_by_id(req.id).ok_or("Invalid id")?,
                     req.tracker,
                     req.n_stacks
                 );
@@ -238,24 +242,14 @@ fn itemhunt<'a, I: Iterator<Item = &'a str>>(cfg_path: &str, world_paths: I) {
         }
     }
     println!("{} worlds in total meet the requirements.", n_meet_reqs);
+    Ok(())
 }
 
-fn find_item(world_path: &str, name: &str) {
-    let ids = read_item_ids();
-    let id = match ids.id_by_name(name) {
-        Some(id) => id,
-        None => {
-            eprintln!("No matching id found for item '{}'", name);
-            return;
-        }
-    };
-    let world = match World::load(world_path) {
-        Ok(world) => world,
-        Err(e) => {
-            eprintln!("Failed to load world \"{}\": {}", world_path, e);
-            return;
-        }
-    };
+fn find_item(world_path: &str, name: &str) -> Result<(), Box<Error>> {
+    let ids = read_item_ids()?;
+    let id = ids.id_by_name(name)
+        .ok_or_else(|| format!("No matching id found for item '{}'", name))?;
+    let world = World::load(world_path)?;
     let (w_width, w_surface_y) = (world.width(), world.surface_y());
     for chest in &world.chests[..] {
         for item in &chest.items[..] {
@@ -266,16 +260,11 @@ fn find_item(world_path: &str, name: &str) {
             }
         }
     }
+    Ok(())
 }
 
-fn fix_npcs(world_path: &str) {
-    let mut world = match World::load(world_path) {
-        Ok(world) => world,
-        Err(e) => {
-            eprintln!("Failed to load world \"{}\": {}", world_path, e);
-            return;
-        }
-    };
+fn fix_npcs(world_path: &str) -> Result<(), Box<Error>> {
+    let mut world = World::load(world_path)?;
     let mut fixed_any = false;
     for npc in &mut world.npcs {
         if npc.x.is_nan() || npc.y.is_nan() {
@@ -288,10 +277,11 @@ fn fix_npcs(world_path: &str) {
         }
     }
     if fixed_any {
-        world.patch_npcs(world_path).unwrap();
+        world.patch_npcs(world_path)?;
     } else {
         println!("No NPCs needed fixing.");
     }
+    Ok(())
 }
 
 fn place_in_chest(
@@ -315,8 +305,8 @@ fn place_in_chest(
     }
 }
 
-fn bless_chests(cfg_path: &str, world_path: &str) {
-    let item_ids = read_item_ids();
+fn bless_chests(cfg_path: &str, world_path: &str) -> Result<(), Box<Error>> {
+    let item_ids = read_item_ids()?;
     struct Tracker {
         acceptable_chest_indexes: Box<Iterator<Item = usize>>,
     }
@@ -327,14 +317,8 @@ fn bless_chests(cfg_path: &str, world_path: &str) {
             }
         }
     }
-    let mut reqs = req_file::from_path::<Tracker>(cfg_path.as_ref(), &item_ids).unwrap();
-    let mut world = match World::load(world_path) {
-        Ok(world) => world,
-        Err(e) => {
-            eprintln!("Failed to load world \"{}\": {}", world_path, e);
-            return;
-        }
-    };
+    let mut reqs = req_file::from_path::<Tracker>(cfg_path.as_ref(), &item_ids)?;
+    let mut world = World::load(world_path)?;
     let mut rng = thread_rng();
     let chest_indexes = 0..world.chests.len();
     for req in &mut reqs {
@@ -372,17 +356,12 @@ fn bless_chests(cfg_path: &str, world_path: &str) {
             );
         }
     }
-    world.patch_chests(world_path).unwrap();
+    world.patch_chests(world_path)?;
+    Ok(())
 }
 
-fn analyze_chests(world_path: &str) {
-    let world = match World::load(world_path) {
-        Ok(world) => world,
-        Err(e) => {
-            eprintln!("Failed to load world \"{}\": {}", world_path, e);
-            return;
-        }
-    };
+fn analyze_chests(world_path: &str) -> Result<(), Box<Error>> {
+    let world = World::load(world_path)?;
     #[derive(Debug)]
     struct ItemStat {
         stack_count: u32,
@@ -412,14 +391,15 @@ fn analyze_chests(world_path: &str) {
     }
     let mut vec = item_stats.into_iter().collect::<Vec<_>>();
     vec.sort_by(|&(_, ref v1), &(_, ref v2)| v1.stack_count.cmp(&v2.stack_count).reverse());
-    let ids = read_item_ids();
+    let ids = read_item_ids()?;
     println!("{:30}stack total", "name");
     for (k, v) in vec {
         println!(
             "{:30}{:<5} {}",
-            ids.name_by_id(k as u16).unwrap(),
+            ids.name_by_id(k as u16).ok_or("Invalid id")?,
             v.stack_count,
             v.total_count
         );
     }
+    Ok(())
 }
