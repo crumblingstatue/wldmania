@@ -18,6 +18,7 @@ pub struct Requirement<Tracker: Default> {
     /// For example, you could track how many times the item has been found.
     /// You can use `()` if you don't need tracking.
     pub tracker: Tracker,
+    pub prefix_id: u8,
 }
 
 enum Segment {
@@ -60,19 +61,31 @@ fn parse_segment(seg: &str) -> Result<Segment, Box<Error>> {
 
 impl<Tracker: Default> Requirement<Tracker> {
     fn parse(line: &str, id_map: &ItemIdMap) -> Result<Self, Box<Error>> {
-        Ok(match line.find(':') {
+        let prefix_id;
+        let from_name = if line.starts_with('*') {
+            let first_space = line.find(' ').ok_or("Expected space after *Prefix")?;
+            let prefix = &line[1..first_space];
+            prefix_id = ::prefix_names::id_by_name(prefix)
+                .ok_or_else(|| format!("Invalid prefix: {}", prefix))?;
+            &line[first_space + 1..]
+        } else {
+            prefix_id = 0;
+            line
+        };
+        Ok(match from_name.find(':') {
             None => Requirement {
                 id: id_map
-                    .id_by_name(line)
-                    .ok_or_else(|| format!("No matching id for item '{}'", line))?,
+                    .id_by_name(from_name)
+                    .ok_or_else(|| format!("No matching id for item '{}'", from_name))?,
                 n_stacks: 1,
                 min_per_stack: 1,
                 max_per_stack: 1,
                 only_in: vec![],
                 tracker: Default::default(),
+                prefix_id,
             },
             Some(colon) => {
-                let segments = line[colon + 1..].split(',');
+                let segments = from_name[colon + 1..].split(',');
                 let mut n_stacks = None;
                 let mut stack_range = None;
                 let mut only_in = None;
@@ -98,14 +111,15 @@ impl<Tracker: Default> Requirement<Tracker> {
                 }
                 let (min, max) = stack_range.unwrap_or((1, 1));
                 Requirement {
-                    id: id_map
-                        .id_by_name(&line[..colon])
-                        .ok_or_else(|| format!("No matching id for item '{}'", &line[..colon]))?,
+                    id: id_map.id_by_name(&from_name[..colon]).ok_or_else(|| {
+                        format!("No matching id for item '{}'", &from_name[..colon])
+                    })?,
                     n_stacks: n_stacks.unwrap_or(1),
                     min_per_stack: min,
                     max_per_stack: max,
                     only_in: only_in.unwrap_or_else(|| vec![]),
                     tracker: Default::default(),
+                    prefix_id,
                 }
             }
         })
@@ -127,6 +141,7 @@ fn test_parse() {
             max_per_stack: 7,
             only_in: vec![ChestType::Gold, ChestType::LockedShadow],
             tracker: (),
+            prefix_id: 0,
         }
     )
 }
@@ -143,6 +158,7 @@ fn test_parse_no_extra() {
             max_per_stack: 1,
             only_in: vec![],
             tracker: (),
+            prefix_id: 0,
         }
     )
 }

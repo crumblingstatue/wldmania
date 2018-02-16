@@ -81,7 +81,7 @@ Blinkroot Seeds: 3, 1-4, Plain
 # Hey, if you really can't get deathweed seeds for the life of you
 Deathweed Seeds: 3, Granite/Locked Shadow
 # You might as well get the best pre-hardmode pickaxe at this point, if you don't already have it.
-Reaver Shark: Locked Shadow
+*Light Reaver Shark: Locked Shadow
 # Potions are often used, we don't want to strip our world of sand too much, so let's put
 # more bottles in chests
 Bottle: 200, 1-18
@@ -95,3 +95,4 @@ Shoe Spikes: Plain
 Black Belt: Locked Corruption / Locked Hallowed / Locked Crimson / Locked Frozen / Locked Jungle
 Tabi: Locked Corruption / Locked Hallowed / Locked Crimson / Locked Frozen / Locked Jungle
 Yoyo Glove: Locked Corruption / Locked Hallowed / Locked Crimson / Locked Frozen / Locked Jungle
+*Light Staff of Regrowth: Ivy

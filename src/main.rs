@@ -20,6 +20,7 @@ use std::path::Path;
 mod world;
 mod req_file;
 mod item_id_pairs;
+mod prefix_names;
 
 fn run() -> Result<(), Box<Error>> {
     let app = App::new("wldmania")
@@ -286,6 +287,7 @@ fn fix_npcs(world_path: &Path) -> Result<(), Box<Error>> {
 fn place_in_chest(
     chest: &mut world::Chest,
     id: i32,
+    prefix: u8,
     min_stack: u16,
     max_stack: u16,
     rng: &mut ThreadRng,
@@ -298,7 +300,7 @@ fn place_in_chest(
                 rng.gen_range(min_stack, max_stack)
             };
             item.id = id;
-            item.prefix_id = 0;
+            item.prefix_id = prefix;
             return;
         }
     }
@@ -327,7 +329,9 @@ fn bless_chests(cfg_path: &str, world_path: &Path) -> Result<(), Box<Error>> {
         // Decrease stack count for every item that already exists in the world
         for chest in &chests[..] {
             for item in &chest.items[..] {
-                if item.stack != 0 && item.id == i32::from(req.id) && req.n_stacks > 0 {
+                if item.stack != 0 && item.id == i32::from(req.id)
+                    && item.prefix_id == req.prefix_id && req.n_stacks > 0
+                {
                     req.n_stacks -= 1;
                 }
             }
@@ -352,6 +356,7 @@ fn bless_chests(cfg_path: &str, world_path: &Path) -> Result<(), Box<Error>> {
             place_in_chest(
                 chest,
                 i32::from(req.id),
+                req.prefix_id,
                 req.min_per_stack,
                 req.max_per_stack,
                 &mut rng,
