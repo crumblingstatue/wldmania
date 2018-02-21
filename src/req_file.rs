@@ -72,56 +72,43 @@ impl<Tracker: Default> Requirement<Tracker> {
             prefix_id = 0;
             line
         };
-        Ok(match from_name.find(':') {
-            None => Requirement {
-                id: id_map
-                    .id_by_name(from_name)
-                    .ok_or_else(|| format!("No matching id for item '{}'", from_name))?,
-                n_stacks: 1,
-                min_per_stack: 1,
-                max_per_stack: 1,
-                only_in: vec![],
-                tracker: Default::default(),
-                prefix_id,
-            },
-            Some(colon) => {
-                let segments = from_name[colon + 1..].split(',');
-                let mut n_stacks = None;
-                let mut stack_range = None;
-                let mut only_in = None;
-                for seg in segments {
-                    let seg = seg.trim();
-                    if seg.is_empty() {
-                        continue;
-                    }
-                    match parse_segment(seg)? {
-                        Segment::NStacks(n) => match n_stacks {
-                            None => n_stacks = Some(n),
-                            Some(_) => return Err("Duplicate n-stacks segment".into()),
-                        },
-                        Segment::StackRange(min, max) => match stack_range {
-                            None => stack_range = Some((min, max)),
-                            Some(_) => return Err("Duplicate stack range segment".into()),
-                        },
-                        Segment::OnlyIn(vec) => match only_in {
-                            None => only_in = Some(vec),
-                            Some(_) => return Err("Duplicate only-in segment".into()),
-                        },
-                    }
-                }
-                let (min, max) = stack_range.unwrap_or((1, 1));
-                Requirement {
-                    id: id_map.id_by_name(&from_name[..colon]).ok_or_else(|| {
-                        format!("No matching id for item '{}'", &from_name[..colon])
-                    })?,
-                    n_stacks: n_stacks.unwrap_or(1),
-                    min_per_stack: min,
-                    max_per_stack: max,
-                    only_in: only_in.unwrap_or_else(|| vec![]),
-                    tracker: Default::default(),
-                    prefix_id,
-                }
+        let colon = from_name.find(':').ok_or("Expected ':' after item name")?;
+        let segments = from_name[colon + 1..].split(',');
+        let mut n_stacks = None;
+        let mut stack_range = None;
+        let mut only_in = None;
+        for seg in segments {
+            let seg = seg.trim();
+            if seg.is_empty() {
+                continue;
             }
+            match parse_segment(seg)? {
+                Segment::NStacks(n) => match n_stacks {
+                    None => n_stacks = Some(n),
+                    Some(_) => return Err("Duplicate n-stacks segment".into()),
+                },
+                Segment::StackRange(min, max) => match stack_range {
+                    None => stack_range = Some((min, max)),
+                    Some(_) => return Err("Duplicate stack range segment".into()),
+                },
+                Segment::OnlyIn(vec) => match only_in {
+                    None => only_in = Some(vec),
+                    Some(_) => return Err("Duplicate only-in segment".into()),
+                },
+            }
+        }
+        let (min, max) = stack_range.unwrap_or((1, 1));
+        let only_in = only_in.ok_or("Missing only-in segment")?;
+        Ok(Requirement {
+            id: id_map
+                .id_by_name(&from_name[..colon])
+                .ok_or_else(|| format!("No matching id for item '{}'", &from_name[..colon]))?,
+            n_stacks: n_stacks.unwrap_or(1),
+            min_per_stack: min,
+            max_per_stack: max,
+            only_in,
+            tracker: Default::default(),
+            prefix_id,
         })
     }
 }
@@ -178,10 +165,10 @@ pub fn from_str<Tracker: Default>(
     id_map: &ItemIdMap,
 ) -> Result<Vec<Requirement<Tracker>>, Box<Error>> {
     let mut reqs = Vec::new();
-    for line in txt.lines() {
+    for (n, line) in txt.lines().enumerate() {
         let line = line.trim();
         if !(line.is_empty() || line.starts_with('#')) {
-            reqs.push(Requirement::parse(line, id_map)?);
+            reqs.push(Requirement::parse(line, id_map).map_err(|e| format!("Line {}: {}", n + 1, e))?);
         }
     }
     Ok(reqs)

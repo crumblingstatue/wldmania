@@ -35,8 +35,8 @@ Super Absorbant Sponge: Locked Jungle / Locked Hallowed
 Bottomless Water Bucket: Locked Jungle / Locked Hallowed
 Golden Bug Net: Rich Mahogany
 Money Trough: Locked Gold
-Compass
-Depth Meter
+Compass: Plain
+Depth Meter: Plain
 # Give chance to have both types of evil in a single world
 Crimson Seeds: Locked Shadow, 1-4
 Corrupt Seeds: Locked Shadow, 1-4
@@ -54,13 +54,13 @@ Living Mahogany Wand: Ivy/Rich Mahogany
 Rich Mahogany Leaf Wand: Ivy/Rich Mahogany
 Ammo Box: Locked Gold
 Celestial Magnet: Locked Shadow, 2
-Dps Meter
-Lifeform Analyzer
-Stopwatch
-Paint Sprayer
-Brick layer
-Portable Cement Mixer
-Extendo Grip
+Dps Meter: Gold
+Lifeform Analyzer: Plain
+Stopwatch: Gold
+Paint Sprayer: Gold
+Brick layer: Gold
+Portable Cement Mixer: Gold
+Extendo Grip: Gold
 Black Counterweight: Gold
 Pulse Bow: Locked Jungle,
 # Best jump item

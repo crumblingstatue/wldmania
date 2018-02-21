@@ -343,7 +343,7 @@ fn bless_chests(cfg_path: &str, world_path: &Path) -> Result<(), Box<Error>> {
                 .filter(|&idx| {
                     let chest = &chests[idx];
                     let type_ = chest_types[&(chest.x, chest.y)];
-                    req.only_in.is_empty() || req.only_in.contains(&type_)
+                    req.only_in.contains(&type_)
                 })
                 .collect();
             rng.shuffle(&mut matching_indexes);
