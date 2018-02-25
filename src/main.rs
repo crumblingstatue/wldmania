@@ -376,9 +376,12 @@ fn analyze_chests(world_path: &Path) -> Result<(), Box<Error>> {
         total_count: u32,
     }
     let mut item_stats: HashMap<i32, ItemStat> = HashMap::new();
+    let mut chests_containing_something = 0;
     for chest in &chests {
+        let mut contains_something = false;
         for item in chest.items.iter() {
             if item.stack != 0 {
+                contains_something = true;
                 match item_stats.get_mut(&item.id) {
                     Some(ref mut stat) => {
                         stat.stack_count += 1;
@@ -396,6 +399,9 @@ fn analyze_chests(world_path: &Path) -> Result<(), Box<Error>> {
                 }
             }
         }
+        if contains_something {
+            chests_containing_something += 1;
+        }
     }
     let mut vec = item_stats.into_iter().collect::<Vec<_>>();
     vec.sort_by(|&(_, ref v1), &(_, ref v2)| v1.stack_count.cmp(&v2.stack_count).reverse());
@@ -409,5 +415,9 @@ fn analyze_chests(world_path: &Path) -> Result<(), Box<Error>> {
             v.total_count
         );
     }
+    println!(
+        "{} total chests that contain something",
+        chests_containing_something
+    );
     Ok(())
 }
