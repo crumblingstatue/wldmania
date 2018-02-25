@@ -162,9 +162,19 @@ fn chest_info(wld_path: &Path, x: u16, y: u16) -> Result<(), Box<Error>> {
     let chests = file.read_chests()?;
     let basic_info = file.read_basic_info()?;
     let chest_types = file.read_chest_types(&basic_info)?;
+    let ids = item_ids();
     for chest in &chests {
         if chest.x == x && chest.y == y {
-            println!("{:?}", chest_types[&(chest.x, chest.y)]);
+            println!("{:?} Chest containing: ", chest_types[&(chest.x, chest.y)]);
+            for item in chest.items.iter() {
+                if item.stack > 0 {
+                    print!("{} ", item.stack);
+                    match ids.name_by_id(item.id as u16) {
+                        Some(name) => println!("{}", name),
+                        None => println!("Unknown({})", item.id),
+                    }
+                }
+            }
             return Ok(());
         }
     }
