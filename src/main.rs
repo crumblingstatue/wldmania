@@ -408,12 +408,11 @@ fn analyze_chests(world_path: &Path) -> Result<(), Box<Error>> {
     let ids = item_ids();
     println!("{:30}stack total", "name");
     for (k, v) in vec {
-        println!(
-            "{:30}{:<5} {}",
-            ids.name_by_id(k as u16).ok_or("Invalid id")?,
-            v.stack_count,
-            v.total_count
-        );
+        match ids.name_by_id(k as u16) {
+            Some(name) => print!("{:30}", name),
+            None => print!("unknown({:4})                 ", k),
+        }
+        println!("{:<5} {}", v.stack_count, v.total_count);
     }
     println!(
         "{} total chests that contain something",
