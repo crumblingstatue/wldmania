@@ -668,6 +668,7 @@ pub static ITEM_ID_PAIRS: &'static [(u16, &'static str)] = &[
     (666, "red's helmet"),
     (667, "red's breastplate"),
     (668, "red's leggings"),
+    (669, "fish"),
     (670, "ice boomerang"),
     (671, "keybrand"),
     (672, "cutlass"),
