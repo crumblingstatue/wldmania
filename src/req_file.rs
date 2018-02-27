@@ -72,37 +72,42 @@ impl<Tracker: Default> Requirement<Tracker> {
             prefix_id = 0;
             line
         };
-        let colon = from_name.find(':').ok_or("Expected ':' after item name")?;
-        let segments = from_name[colon + 1..].split(',');
         let mut n_stacks = None;
         let mut stack_range = None;
         let mut only_in = None;
-        for seg in segments {
-            let seg = seg.trim();
-            if seg.is_empty() {
-                continue;
+        let end_of_name;
+        if let Some(colon) = from_name.find(':') {
+            let segments = from_name[colon + 1..].split(',');
+            for seg in segments {
+                let seg = seg.trim();
+                if seg.is_empty() {
+                    continue;
+                }
+                match parse_segment(seg)? {
+                    Segment::NStacks(n) => match n_stacks {
+                        None => n_stacks = Some(n),
+                        Some(_) => return Err("Duplicate n-stacks segment".into()),
+                    },
+                    Segment::StackRange(min, max) => match stack_range {
+                        None => stack_range = Some((min, max)),
+                        Some(_) => return Err("Duplicate stack range segment".into()),
+                    },
+                    Segment::OnlyIn(vec) => match only_in {
+                        None => only_in = Some(vec),
+                        Some(_) => return Err("Duplicate only-in segment".into()),
+                    },
+                }
             }
-            match parse_segment(seg)? {
-                Segment::NStacks(n) => match n_stacks {
-                    None => n_stacks = Some(n),
-                    Some(_) => return Err("Duplicate n-stacks segment".into()),
-                },
-                Segment::StackRange(min, max) => match stack_range {
-                    None => stack_range = Some((min, max)),
-                    Some(_) => return Err("Duplicate stack range segment".into()),
-                },
-                Segment::OnlyIn(vec) => match only_in {
-                    None => only_in = Some(vec),
-                    Some(_) => return Err("Duplicate only-in segment".into()),
-                },
-            }
+            end_of_name = colon;
+        } else {
+            end_of_name = from_name.len();
         }
         let (min, max) = stack_range.unwrap_or((1, 1));
-        let only_in = only_in.ok_or("Missing only-in segment")?;
+        let only_in = only_in.unwrap_or_else(|| Vec::new());
         Ok(Requirement {
             id: id_map
-                .id_by_name(&from_name[..colon])
-                .ok_or_else(|| format!("No matching id for item '{}'", &from_name[..colon]))?,
+                .id_by_name(&from_name[..end_of_name])
+                .ok_or_else(|| format!("No matching id for item '{}'", &from_name[..end_of_name]))?,
             n_stacks: n_stacks.unwrap_or(1),
             min_per_stack: min,
             max_per_stack: max,

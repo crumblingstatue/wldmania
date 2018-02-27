@@ -316,6 +316,20 @@ fn place_in_chest(
     }
 }
 
+fn validate_req_for_bless<T: Default>(reqs: &[req_file::Requirement<T>]) -> Result<(), String> {
+    let ids = item_ids();
+    for req in reqs {
+        if req.only_in.is_empty() {
+            let name = ids.name_by_id(req.id).unwrap();
+            return Err(format!(
+                "You need to specify at least one chest type for {}",
+                name
+            ));
+        }
+    }
+    Ok(())
+}
+
 fn bless_chests(cfg_path: &str, world_path: &Path) -> Result<(), Box<Error>> {
     let item_ids = item_ids();
     struct Tracker {
@@ -329,6 +343,7 @@ fn bless_chests(cfg_path: &str, world_path: &Path) -> Result<(), Box<Error>> {
         }
     }
     let mut reqs = req_file::from_path::<Tracker>(cfg_path.as_ref(), &item_ids)?;
+    validate_req_for_bless(&reqs)?;
     let mut file = WorldFile::open(world_path)?;
     let mut chests = file.read_chests()?;
     let basic_info = file.read_basic_info()?;
