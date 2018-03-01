@@ -199,9 +199,20 @@ impl ItemIdMap {
 }
 
 fn item_ids() -> ItemIdMap {
+    use byteorder::{ReadBytesExt, LE};
+    use std::io::{Cursor, SeekFrom};
+    let mut reader = Cursor::new(item_id_pairs::ITEM_ID_PAIRS);
+    let len = reader.read_u16::<LE>().unwrap();
     let mut item_ids = BidirMap::new();
-    for &(id, name) in item_id_pairs::ITEM_ID_PAIRS {
-        item_ids.insert(id, name);
+    for _ in 0..len {
+        let id = reader.read_u16::<LE>().unwrap();
+        let name_len = reader.read_u8().unwrap();
+        let pos = reader.seek(SeekFrom::Current(i64::from(name_len))).unwrap();
+        item_ids.insert(id, unsafe {
+            ::std::str::from_utf8_unchecked(
+                &item_id_pairs::ITEM_ID_PAIRS[pos as usize - name_len as usize..pos as usize],
+            )
+        });
     }
     ItemIdMap(item_ids)
 }
