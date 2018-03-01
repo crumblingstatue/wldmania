@@ -225,6 +225,7 @@ fn itemhunt<'a, I: Iterator<Item = &'a str>>(
     let mut required_items = req_file::from_path::<u16>(cfg_path.as_ref(), &id_map)?;
     let mut n_meet_reqs = 0;
     for world_path in world_paths {
+        println!("{}:", world_path);
         let mut file = WorldFile::open(world_path.as_ref())?;
         let chests = file.read_chests()?;
         for chest in &chests[..] {
