@@ -6,21 +6,21 @@ extern crate byteorder;
 extern crate clap;
 extern crate rand;
 
-use world::WorldFile;
+use ansi_term::Colour::{Green, Red};
+use bidir_map::BidirMap;
 use clap::{App, AppSettings, Arg, SubCommand};
+use rand::{thread_rng, Rng, ThreadRng};
+use std::collections::HashMap;
+use std::error::Error;
 use std::fs::File;
 use std::io::{self, prelude::*};
-use ansi_term::Colour::{Green, Red};
-use std::collections::HashMap;
-use bidir_map::BidirMap;
-use rand::{thread_rng, Rng, ThreadRng};
-use std::error::Error;
 use std::path::Path;
+use world::WorldFile;
 
-mod world;
-mod req_file;
 mod item_id_pairs;
 mod prefix_names;
+mod req_file;
+mod world;
 
 fn run() -> Result<(), Box<Error>> {
     let app = App::new("wldmania")
@@ -267,7 +267,8 @@ fn itemhunt<'a, I: Iterator<Item = &'a str>>(
 
 fn find_item(world_path: &Path, name: &str) -> Result<(), Box<Error>> {
     let ids = item_ids();
-    let id = ids.id_by_name(name)
+    let id = ids
+        .id_by_name(name)
         .ok_or_else(|| format!("No matching id found for item '{}'", name))?;
     let mut file = WorldFile::open(world_path)?;
     let basic_info = file.read_basic_info()?;
@@ -366,8 +367,10 @@ fn bless_chests(cfg_path: &str, world_path: &Path) -> Result<(), Box<Error>> {
         // Decrease stack count for every item that already exists in the world
         for chest in &chests[..] {
             for item in &chest.items[..] {
-                if item.stack != 0 && item.id == i32::from(req.id)
-                    && item.prefix_id == req.prefix_id && req.n_stacks > 0
+                if item.stack != 0
+                    && item.id == i32::from(req.id)
+                    && item.prefix_id == req.prefix_id
+                    && req.n_stacks > 0
                 {
                     req.n_stacks -= 1;
                 }

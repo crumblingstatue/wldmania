@@ -1,10 +1,10 @@
-use std::error::Error;
 use byteorder::{ReadBytesExt, WriteBytesExt, LE};
+use std::collections::HashMap;
+use std::error::Error;
+use std::fmt;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::{self, SeekFrom};
-use std::fmt;
-use std::collections::HashMap;
 use std::path::Path;
 
 pub struct BasicInfo {

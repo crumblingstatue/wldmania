@@ -1,9 +1,9 @@
 //! Requirements file parsing
 
-use std::path::Path;
 use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;
+use std::path::Path;
 use world::ChestType;
 use ItemIdMap;
 
@@ -173,7 +173,9 @@ pub fn from_str<Tracker: Default>(
     for (n, line) in txt.lines().enumerate() {
         let line = line.trim();
         if !(line.is_empty() || line.starts_with('#')) {
-            reqs.push(Requirement::parse(line, id_map).map_err(|e| format!("Line {}: {}", n + 1, e))?);
+            reqs.push(
+                Requirement::parse(line, id_map).map_err(|e| format!("Line {}: {}", n + 1, e))?
+            );
         }
     }
     Ok(reqs)
