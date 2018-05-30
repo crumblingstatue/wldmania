@@ -174,7 +174,7 @@ pub fn from_str<Tracker: Default>(
         let line = line.trim();
         if !(line.is_empty() || line.starts_with('#')) {
             reqs.push(
-                Requirement::parse(line, id_map).map_err(|e| format!("Line {}: {}", n + 1, e))?
+                Requirement::parse(line, id_map).map_err(|e| format!("Line {}: {}", n + 1, e))?,
             );
         }
     }
