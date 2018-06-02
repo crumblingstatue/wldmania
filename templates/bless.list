@@ -21,7 +21,7 @@ Mining Shirt: Gold
 Mining Pants: Gold
 Mining Helmet: Gold
 Metal Detector: Gold
-Crate Potion: Water, 30, 1-5
+Crate Potion: Water, 15, 1-4
 # We only get angler accessories, angler armor and golden rod are guaranteed
 # if you do 30 quests
 Tackle Box: Water
@@ -69,7 +69,7 @@ Sandstorm in a Bottle: Sky
 Ankh Charm: Locked Crimson/Locked Hallowed/Locked Corruption
 # Sometimes Goblin army just refuses to come. This is a less grindy way to make
 # goblin battle standard.
-Tattered cloth: Plain, 10, 2-5
+Tattered cloth: Plain, 5, 2-4
 # Plantera just simply refuses to drop The Axe most of the time
 *Legendary The Axe: Locked Jungle
 Radar: Plain
