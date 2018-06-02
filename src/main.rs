@@ -367,11 +367,7 @@ fn bless_chests(cfg_path: &str, world_path: &Path) -> Result<(), Box<Error>> {
         // Decrease stack count for every item that already exists in the world
         for chest in &chests[..] {
             for item in &chest.items[..] {
-                if item.stack != 0
-                    && item.id == i32::from(req.id)
-                    && item.prefix_id == req.prefix_id
-                    && req.n_stacks > 0
-                {
+                if item.stack != 0 && item.id == i32::from(req.id) && req.n_stacks > 0 {
                     req.n_stacks -= 1;
                 }
             }
