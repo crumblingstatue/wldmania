@@ -22,9 +22,9 @@ pub struct WorldFile {
 }
 
 impl WorldFile {
-    pub fn open(path: &Path) -> Result<Self, Box<Error>> {
+    pub fn open(path: &Path, write: bool) -> Result<Self, Box<Error>> {
         use std::fs::OpenOptions;
-        let mut f = OpenOptions::new().read(true).write(true).open(path)?;
+        let mut f = OpenOptions::new().read(true).write(write).open(path)?;
         let header = read_offsets(&mut f)?;
         Ok(Self { file: f, header })
     }

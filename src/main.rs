@@ -158,7 +158,7 @@ fn main() {
 }
 
 fn chest_info(wld_path: &Path, x: u16, y: u16) -> Result<(), Box<Error>> {
-    let mut file = WorldFile::open(wld_path)?;
+    let mut file = WorldFile::open(wld_path, false)?;
     let chests = file.read_chests()?;
     let basic_info = file.read_basic_info()?;
     let chest_types = file.read_chest_types(&basic_info)?;
@@ -226,7 +226,7 @@ fn itemhunt<'a, I: Iterator<Item = &'a str>>(
     let mut n_meet_reqs = 0;
     for world_path in world_paths {
         println!("{}:", world_path);
-        let mut file = WorldFile::open(world_path.as_ref())?;
+        let mut file = WorldFile::open(world_path.as_ref(), false)?;
         let chests = file.read_chests()?;
         for chest in &chests[..] {
             for item in &chest.items[..] {
@@ -270,7 +270,7 @@ fn find_item(world_path: &Path, name: &str) -> Result<(), Box<Error>> {
     let id = ids
         .id_by_name(name)
         .ok_or_else(|| format!("No matching id found for item '{}'", name))?;
-    let mut file = WorldFile::open(world_path)?;
+    let mut file = WorldFile::open(world_path, false)?;
     let basic_info = file.read_basic_info()?;
     let chests = file.read_chests()?;
     for chest in &chests[..] {
@@ -285,7 +285,7 @@ fn find_item(world_path: &Path, name: &str) -> Result<(), Box<Error>> {
 }
 
 fn fix_npcs(world_path: &Path) -> Result<(), Box<Error>> {
-    let mut file = WorldFile::open(world_path)?;
+    let mut file = WorldFile::open(world_path, true)?;
     let basic_info = file.read_basic_info()?;
     let mut npcs = file.read_npcs()?;
     let mut fixed_any = false;
@@ -357,7 +357,7 @@ fn bless_chests(cfg_path: &str, world_path: &Path) -> Result<(), Box<Error>> {
     }
     let mut reqs = req_file::from_path::<Tracker>(cfg_path.as_ref(), &item_ids)?;
     validate_req_for_bless(&reqs)?;
-    let mut file = WorldFile::open(world_path)?;
+    let mut file = WorldFile::open(world_path, true)?;
     let mut chests = file.read_chests()?;
     let basic_info = file.read_basic_info()?;
     let chest_types = file.read_chest_types(&basic_info)?;
@@ -404,7 +404,7 @@ fn bless_chests(cfg_path: &str, world_path: &Path) -> Result<(), Box<Error>> {
 }
 
 fn analyze_chests(world_path: &Path) -> Result<(), Box<Error>> {
-    let mut file = WorldFile::open(world_path)?;
+    let mut file = WorldFile::open(world_path, false)?;
     let chests = file.read_chests()?;
     #[derive(Debug)]
     struct ItemStat {
