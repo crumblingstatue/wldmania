@@ -149,6 +149,92 @@ impl WorldFile {
         }
         Ok(())
     }
+    pub fn corruption_percent(&mut self) -> Result<(), Box<Error>> {
+        let basic_info = self.read_basic_info()?;
+        self.file.seek(SeekFrom::Start(self.header.tiles as u64))?;
+        let mut total = 0;
+        let mut corrupt = 0;
+        let mut crimson = 0;
+        read_tiles(
+            &mut self.file,
+            basic_info.width,
+            basic_info.height,
+            &self.header.tile_frame_important,
+            |id| {
+                total += 1;
+                match id {
+                    23 | 25 | 163 | 112 => corrupt += 1,
+                    199 | 200 | 203 | 234 => crimson += 1,
+                    _ => {}
+                }
+            },
+            |_, _, _, _| {},
+        )?;
+        println!(
+            "Total: {}, Corrupt: {}, {:.2}%, Crimson: {}, {:.2}%",
+            total,
+            corrupt,
+            f64::from(corrupt) / f64::from(total) * 100.0,
+            crimson,
+            f64::from(crimson) / f64::from(total) * 100.0,
+        );
+        Ok(())
+    }
+    pub fn count_ores(&mut self) -> Result<(), Box<Error>> {
+        let basic_info = self.read_basic_info()?;
+        self.file.seek(SeekFrom::Start(self.header.tiles as u64))?;
+        let mut copper = 0;
+        let mut tin = 0;
+        let mut iron = 0;
+        let mut lead = 0;
+        let mut silver = 0;
+        let mut tungsten = 0;
+        let mut gold = 0;
+        let mut platinum = 0;
+        read_tiles(
+            &mut self.file,
+            basic_info.width,
+            basic_info.height,
+            &self.header.tile_frame_important,
+            |id| match id {
+                7 => copper += 1,
+                166 => tin += 1,
+                6 => iron += 1,
+                167 => lead += 1,
+                9 => silver += 1,
+                168 => tungsten += 1,
+                8 => gold += 1,
+                169 => platinum += 1,
+                _ => {}
+            },
+            |_, _, _, _| {},
+        )?;
+        if copper > 0 {
+            println!("copper: {}", copper);
+        }
+        if tin > 0 {
+            println!("tin: {}", tin);
+        }
+        if iron > 0 {
+            println!("iron: {}", iron);
+        }
+        if lead > 0 {
+            println!("lead: {}", lead);
+        }
+        if silver > 0 {
+            println!("silver: {}", silver);
+        }
+        if tungsten > 0 {
+            println!("tungsten: {}", tungsten);
+        }
+        if gold > 0 {
+            println!("gold: {}", gold);
+        }
+        if platinum > 0 {
+            println!("platinum: {}", platinum);
+        }
+        Ok(())
+    }
 }
 
 struct Header {
@@ -336,6 +422,44 @@ fn load_chest_types(
     tile_frame_important: &[u8],
 ) -> Result<HashMap<(u16, u16), ChestType>, Box<Error>> {
     let mut chest_types = HashMap::new();
+    read_tiles(
+        f,
+        w,
+        h,
+        tile_frame_important,
+        |_| {},
+        |tile_id, frame_x, frame_y, i| {
+            if tile_id == 21 {
+                let x = (i / h as usize) as u16;
+                let y = (i % h as usize) as u16;
+                if frame_y == 0 {
+                    let type_ = ChestType::from_frame_x(frame_x);
+                    chest_types.insert((x, y), type_);
+                }
+            } else if tile_id == 88
+            /* dresser */
+            {
+                let x = (i / h as usize) as u16;
+                let y = (i % h as usize) as u16;
+                chest_types.insert((x, y), ChestType::UnknownDresser(frame_x));
+            }
+        },
+    )?;
+    Ok(chest_types)
+}
+
+fn read_tiles<TC, TFIC>(
+    f: &mut File,
+    w: u16,
+    h: u16,
+    tile_frame_important: &[u8],
+    mut tile_callback: TC,
+    mut tfi_callback: TFIC,
+) -> Result<(), Box<Error>>
+where
+    TC: FnMut(u16),
+    TFIC: FnMut(u16, i16, i16, usize),
+{
     let mut i = 0;
     let len: usize = w as usize * h as usize;
     while i < len {
@@ -369,23 +493,11 @@ fn load_chest_types(
             } else {
                 u16::from(f.read_u8()?)
             };
+            tile_callback(tile_id);
             if bit_index(tile_frame_important, tile_id as usize) {
                 let frame_x = f.read_i16::<LE>()?;
                 let frame_y = f.read_i16::<LE>()?;
-                if tile_id == 21 {
-                    let x = (i / h as usize) as u16;
-                    let y = (i % h as usize) as u16;
-                    if frame_y == 0 {
-                        let type_ = ChestType::from_frame_x(frame_x);
-                        chest_types.insert((x, y), type_);
-                    }
-                } else if tile_id == 88
-                /* dresser */
-                {
-                    let x = (i / h as usize) as u16;
-                    let y = (i % h as usize) as u16;
-                    chest_types.insert((x, y), ChestType::UnknownDresser(frame_x));
-                }
+                tfi_callback(tile_id, frame_x, frame_y, i);
             }
         }
         if tile_painted {
@@ -410,7 +522,7 @@ fn load_chest_types(
         }
         i += 1;
     }
-    Ok(chest_types)
+    Ok(())
 }
 
 impl BasicInfo {

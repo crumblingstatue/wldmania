@@ -112,6 +112,24 @@ fn run() -> Result<(), Box<Error>> {
                 )
                 .arg(Arg::with_name("x").required(true))
                 .arg(Arg::with_name("y").required(true)),
+        )
+        .subcommand(
+            SubCommand::with_name("corruption-percent")
+                .about("Give percentage of how corrupt/crimson your world is")
+                .arg(
+                    Arg::with_name("wld-file")
+                        .required(true)
+                        .help("Path to a Terraria .wld file"),
+                ),
+        )
+        .subcommand(
+            SubCommand::with_name("count-ores")
+                .about("Count most common ores in the world")
+                .arg(
+                    Arg::with_name("wld-file")
+                        .required(true)
+                        .help("Path to a Terraria .wld file"),
+                ),
         );
 
     let matches = app.get_matches();
@@ -147,6 +165,12 @@ fn run() -> Result<(), Box<Error>> {
         let x = submatches.value_of("x").unwrap().parse()?;
         let y = submatches.value_of("y").unwrap().parse()?;
         chest_info(world_path.as_ref(), x, y).unwrap();
+    } else if let Some(submatches) = matches.subcommand_matches("corruption-percent") {
+        let world_path = submatches.value_of("wld-file").unwrap();
+        corruption_percent(world_path.as_ref())?;
+    } else if let Some(submatches) = matches.subcommand_matches("count-ores") {
+        let world_path = submatches.value_of("wld-file").unwrap();
+        count_ores(world_path.as_ref()).unwrap();
     }
     Ok(())
 }
@@ -455,4 +479,14 @@ fn analyze_chests(world_path: &Path) -> Result<(), Box<Error>> {
         chests_containing_something
     );
     Ok(())
+}
+
+fn corruption_percent(path: &Path) -> Result<(), Box<Error>> {
+    let mut file = WorldFile::open(path, false)?;
+    file.corruption_percent()
+}
+
+fn count_ores(path: &Path) -> Result<(), Box<Error>> {
+    let mut file = WorldFile::open(path, false)?;
+    file.count_ores()
 }
