@@ -241,6 +241,18 @@ fn item_ids() -> ItemIdMap {
     ItemIdMap(item_ids)
 }
 
+/// There are buffer areas at the edges of terraria worlds that exist, but the player cannot
+/// access. For some reason, the world generator can generate chests there, even though they
+/// cannot be looted by legit means.
+const INACCESSIBLE_EDGE: u16 = 42;
+
+fn is_inaccessible(x: u16, y: u16, basic_info: &::world::BasicInfo) -> bool {
+    x < INACCESSIBLE_EDGE
+        || y < INACCESSIBLE_EDGE
+        || x > basic_info.width - INACCESSIBLE_EDGE
+        || y > basic_info.height - INACCESSIBLE_EDGE
+}
+
 fn itemhunt<'a, I: Iterator<Item = &'a str>>(
     cfg_path: &str,
     world_paths: I,
@@ -251,8 +263,16 @@ fn itemhunt<'a, I: Iterator<Item = &'a str>>(
     for world_path in world_paths {
         println!("{}:", world_path);
         let mut file = WorldFile::open(world_path.as_ref(), false)?;
+        let basic_info = file.read_basic_info()?;
         let chests = file.read_chests()?;
         for chest in &chests[..] {
+            if is_inaccessible(chest.x, chest.y, &basic_info) {
+                eprintln!(
+                    "Warning: Ignoring out-of-bounds chest at {}, {}",
+                    chest.x, chest.y
+                );
+                continue;
+            }
             for item in &chest.items[..] {
                 if item.stack != 0 {
                     for req in &mut required_items {
@@ -390,6 +410,9 @@ fn bless_chests(cfg_path: &str, world_path: &Path) -> Result<(), Box<Error>> {
     for req in &mut reqs {
         // Decrease stack count for every item that already exists in the world
         for chest in &chests[..] {
+            if is_inaccessible(chest.x, chest.y, &basic_info) {
+                continue;
+            }
             for item in &chest.items[..] {
                 if item.stack != 0 && item.id == i32::from(req.id) && req.n_stacks > 0 {
                     req.n_stacks -= 1;
@@ -403,7 +426,7 @@ fn bless_chests(cfg_path: &str, world_path: &Path) -> Result<(), Box<Error>> {
                 .filter(|&idx| {
                     let chest = &chests[idx];
                     let type_ = chest_types[&(chest.x, chest.y)];
-                    req.only_in.contains(&type_)
+                    req.only_in.contains(&type_) && !is_inaccessible(chest.x, chest.y, &basic_info)
                 })
                 .collect();
             rng.shuffle(&mut matching_indexes);
