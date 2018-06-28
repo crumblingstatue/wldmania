@@ -435,7 +435,14 @@ fn bless_chests(cfg_path: &str, world_path: &Path) -> Result<(), Box<Error>> {
     }
     for mut req in reqs {
         for _ in 0..req.n_stacks {
-            let chest = &mut chests[req.tracker.acceptable_chest_indexes.next().unwrap()];
+            let index = match req.tracker.acceptable_chest_indexes.next() {
+                Some(idx) => idx,
+                None => {
+                    let name = item_ids.name_by_id(req.id).unwrap();
+                    return Err(format!("No chest available for {}", name).into());
+                }
+            };
+            let chest = &mut chests[index];
             place_in_chest(
                 chest,
                 i32::from(req.id),
