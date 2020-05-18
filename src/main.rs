@@ -22,7 +22,7 @@ mod prefix_names;
 mod req_file;
 mod world;
 
-fn run() -> Result<(), Box<Error>> {
+fn run() -> Result<(), Box<dyn Error>> {
     let app = App::new("wldmania")
         .version(env!("CARGO_PKG_VERSION"))
         .about("Terraria world inspection/manupilation tool")
@@ -181,7 +181,7 @@ fn main() {
     }
 }
 
-fn chest_info(wld_path: &Path, x: u16, y: u16) -> Result<(), Box<Error>> {
+fn chest_info(wld_path: &Path, x: u16, y: u16) -> Result<(), Box<dyn Error>> {
     let mut file = WorldFile::open(wld_path, false)?;
     let chests = file.read_chests()?;
     let basic_info = file.read_basic_info()?;
@@ -256,7 +256,7 @@ fn is_inaccessible(x: u16, y: u16, basic_info: &::world::BasicInfo) -> bool {
 fn itemhunt<'a, I: Iterator<Item = &'a str>>(
     cfg_path: &str,
     world_paths: I,
-) -> Result<(), Box<Error>> {
+) -> Result<(), Box<dyn Error>> {
     let id_map = item_ids();
     let mut required_items = req_file::from_path::<u16>(cfg_path.as_ref(), &id_map)?;
     let mut n_meet_reqs = 0;
@@ -309,7 +309,7 @@ fn itemhunt<'a, I: Iterator<Item = &'a str>>(
     Ok(())
 }
 
-fn find_item(world_path: &Path, name: &str) -> Result<(), Box<Error>> {
+fn find_item(world_path: &Path, name: &str) -> Result<(), Box<dyn Error>> {
     let ids = item_ids();
     let id = ids
         .id_by_name(name)
@@ -328,7 +328,7 @@ fn find_item(world_path: &Path, name: &str) -> Result<(), Box<Error>> {
     Ok(())
 }
 
-fn fix_npcs(world_path: &Path) -> Result<(), Box<Error>> {
+fn fix_npcs(world_path: &Path) -> Result<(), Box<dyn Error>> {
     let mut file = WorldFile::open(world_path, true)?;
     let basic_info = file.read_basic_info()?;
     let mut npcs = file.read_npcs()?;
@@ -387,10 +387,10 @@ fn validate_req_for_bless<T: Default>(reqs: &[req_file::Requirement<T>]) -> Resu
     Ok(())
 }
 
-fn bless_chests(cfg_path: &str, world_path: &Path) -> Result<(), Box<Error>> {
+fn bless_chests(cfg_path: &str, world_path: &Path) -> Result<(), Box<dyn Error>> {
     let item_ids = item_ids();
     struct Tracker {
-        acceptable_chest_indexes: Box<Iterator<Item = usize>>,
+        acceptable_chest_indexes: Box<dyn Iterator<Item = usize>>,
     }
     impl Default for Tracker {
         fn default() -> Self {
@@ -457,7 +457,7 @@ fn bless_chests(cfg_path: &str, world_path: &Path) -> Result<(), Box<Error>> {
     Ok(())
 }
 
-fn analyze_chests(world_path: &Path) -> Result<(), Box<Error>> {
+fn analyze_chests(world_path: &Path) -> Result<(), Box<dyn Error>> {
     let mut file = WorldFile::open(world_path, false)?;
     let chests = file.read_chests()?;
     #[derive(Debug)]
@@ -511,12 +511,12 @@ fn analyze_chests(world_path: &Path) -> Result<(), Box<Error>> {
     Ok(())
 }
 
-fn corruption_percent(path: &Path) -> Result<(), Box<Error>> {
+fn corruption_percent(path: &Path) -> Result<(), Box<dyn Error>> {
     let mut file = WorldFile::open(path, false)?;
     file.corruption_percent()
 }
 
-fn count_ores(path: &Path) -> Result<(), Box<Error>> {
+fn count_ores(path: &Path) -> Result<(), Box<dyn Error>> {
     let mut file = WorldFile::open(path, false)?;
     file.count_ores()
 }

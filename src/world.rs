@@ -22,13 +22,13 @@ pub struct WorldFile {
 }
 
 impl WorldFile {
-    pub fn open(path: &Path, write: bool) -> Result<Self, Box<Error>> {
+    pub fn open(path: &Path, write: bool) -> Result<Self, Box<dyn Error>> {
         use std::fs::OpenOptions;
         let mut f = OpenOptions::new().read(true).write(write).open(path)?;
         let header = read_offsets(&mut f)?;
         Ok(Self { file: f, header })
     }
-    pub fn read_npcs(&mut self) -> Result<Vec<Npc>, Box<Error>> {
+    pub fn read_npcs(&mut self) -> Result<Vec<Npc>, Box<dyn Error>> {
         self.file.seek(SeekFrom::Start(self.header.npcs as u64))?;
         let mut npcs = Vec::new();
         while let Some(npc) = read_npc(&mut self.file)? {
@@ -36,7 +36,7 @@ impl WorldFile {
         }
         Ok(npcs)
     }
-    pub fn read_basic_info(&mut self) -> Result<BasicInfo, Box<Error>> {
+    pub fn read_basic_info(&mut self) -> Result<BasicInfo, Box<dyn Error>> {
         let f = &mut self.file;
         f.seek(SeekFrom::Start(self.header.header as u64))?;
         let _name = read_string(f)?;
@@ -86,7 +86,7 @@ impl WorldFile {
     pub fn read_chest_types(
         &mut self,
         basic_info: &BasicInfo,
-    ) -> Result<HashMap<(u16, u16), ChestType>, Box<Error>> {
+    ) -> Result<HashMap<(u16, u16), ChestType>, Box<dyn Error>> {
         self.file.seek(SeekFrom::Start(self.header.tiles as u64))?;
         let chest_types = load_chest_types(
             &mut self.file,
@@ -96,7 +96,7 @@ impl WorldFile {
         )?;
         Ok(chest_types)
     }
-    pub fn read_chests(&mut self) -> Result<Vec<Chest>, Box<Error>> {
+    pub fn read_chests(&mut self) -> Result<Vec<Chest>, Box<dyn Error>> {
         let f = &mut self.file;
         f.seek(SeekFrom::Start(self.header.chests as u64))?;
         let n_chests = f.read_i16::<LE>()?;
@@ -110,7 +110,7 @@ impl WorldFile {
         }
         Ok(chests)
     }
-    pub fn write_npcs(&mut self, npcs: &[Npc]) -> Result<(), Box<Error>> {
+    pub fn write_npcs(&mut self, npcs: &[Npc]) -> Result<(), Box<dyn Error>> {
         let f = &mut self.file;
         f.seek(SeekFrom::Start(self.header.npcs as u64))?;
         for npc in npcs {
@@ -118,7 +118,7 @@ impl WorldFile {
         }
         Ok(())
     }
-    pub fn write_chests(&mut self, chests: &[Chest]) -> Result<(), Box<Error>> {
+    pub fn write_chests(&mut self, chests: &[Chest]) -> Result<(), Box<dyn Error>> {
         // Save the contents after chests into a buffer to write back later
         self.file.seek(SeekFrom::Start(self.header.signs as u64))?;
         let mut rest_buf = Vec::new();
@@ -140,7 +140,7 @@ impl WorldFile {
         self.header.write(&mut self.file)?;
         Ok(())
     }
-    fn write_chests_inner(&mut self, chests: &[Chest]) -> Result<(), Box<Error>> {
+    fn write_chests_inner(&mut self, chests: &[Chest]) -> Result<(), Box<dyn Error>> {
         let f = &mut self.file;
         f.write_i16::<LE>(chests.len() as i16)?;
         f.write_i16::<LE>(ITEMS_PER_CHEST)?;
@@ -149,7 +149,7 @@ impl WorldFile {
         }
         Ok(())
     }
-    pub fn corruption_percent(&mut self) -> Result<(), Box<Error>> {
+    pub fn corruption_percent(&mut self) -> Result<(), Box<dyn Error>> {
         let basic_info = self.read_basic_info()?;
         self.file.seek(SeekFrom::Start(self.header.tiles as u64))?;
         let mut total = 0;
@@ -180,7 +180,7 @@ impl WorldFile {
         );
         Ok(())
     }
-    pub fn count_ores(&mut self) -> Result<(), Box<Error>> {
+    pub fn count_ores(&mut self) -> Result<(), Box<dyn Error>> {
         let basic_info = self.read_basic_info()?;
         self.file.seek(SeekFrom::Start(self.header.tiles as u64))?;
         let mut copper = 0;
@@ -273,7 +273,7 @@ fn bit_index(bytes: &[u8], idx: usize) -> bool {
     bsa(bytes[byte_idx], bit_idx)
 }
 
-fn read_offsets(f: &mut File) -> Result<Header, Box<Error>> {
+fn read_offsets(f: &mut File) -> Result<Header, Box<dyn Error>> {
     let _terraria_ver = f.read_i32::<LE>()?;
     let mut magic = [0u8; 7];
     f.read_exact(&mut magic)?;
@@ -420,7 +420,7 @@ fn load_chest_types(
     w: u16,
     h: u16,
     tile_frame_important: &[u8],
-) -> Result<HashMap<(u16, u16), ChestType>, Box<Error>> {
+) -> Result<HashMap<(u16, u16), ChestType>, Box<dyn Error>> {
     let mut chest_types = HashMap::new();
     read_tiles(
         f,
@@ -455,7 +455,7 @@ fn read_tiles<TC, TFIC>(
     tile_frame_important: &[u8],
     mut tile_callback: TC,
     mut tfi_callback: TFIC,
-) -> Result<(), Box<Error>>
+) -> Result<(), Box<dyn Error>>
 where
     TC: FnMut(u16),
     TFIC: FnMut(u16, i16, i16, usize),

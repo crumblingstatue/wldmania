@@ -27,7 +27,7 @@ enum Segment {
     OnlyIn(Vec<ChestType>),
 }
 
-fn parse_only_in(seg: &str) -> Result<Segment, Box<Error>> {
+fn parse_only_in(seg: &str) -> Result<Segment, Box<dyn Error>> {
     let mut only_in = Vec::new();
     let names = seg.split('/');
     for name in names {
@@ -40,7 +40,7 @@ fn parse_only_in(seg: &str) -> Result<Segment, Box<Error>> {
     Ok(Segment::OnlyIn(only_in))
 }
 
-fn parse_n_stacks_or_stack_range(seg: &str) -> Result<Segment, Box<Error>> {
+fn parse_n_stacks_or_stack_range(seg: &str) -> Result<Segment, Box<dyn Error>> {
     let seg = seg.trim();
     Ok(match seg.find('-') {
         None => Segment::NStacks(seg.parse()?),
@@ -51,7 +51,7 @@ fn parse_n_stacks_or_stack_range(seg: &str) -> Result<Segment, Box<Error>> {
     })
 }
 
-fn parse_segment(seg: &str) -> Result<Segment, Box<Error>> {
+fn parse_segment(seg: &str) -> Result<Segment, Box<dyn Error>> {
     if seg.starts_with(|c: char| c.is_alphabetic()) {
         parse_only_in(seg)
     } else {
@@ -60,7 +60,7 @@ fn parse_segment(seg: &str) -> Result<Segment, Box<Error>> {
 }
 
 impl<Tracker: Default> Requirement<Tracker> {
-    fn parse(line: &str, id_map: &ItemIdMap) -> Result<Self, Box<Error>> {
+    fn parse(line: &str, id_map: &ItemIdMap) -> Result<Self, Box<dyn Error>> {
         let prefix_id;
         let from_name = if line.starts_with('*') {
             let first_space = line.find(' ').ok_or("Expected space after *Prefix")?;
@@ -107,7 +107,9 @@ impl<Tracker: Default> Requirement<Tracker> {
         Ok(Requirement {
             id: id_map
                 .id_by_name(&from_name[..end_of_name])
-                .ok_or_else(|| format!("No matching id for item '{}'", &from_name[..end_of_name]))?,
+                .ok_or_else(|| {
+                    format!("No matching id for item '{}'", &from_name[..end_of_name])
+                })?,
             n_stacks: n_stacks.unwrap_or(1),
             min_per_stack: min,
             max_per_stack: max,
@@ -125,7 +127,8 @@ fn test_parse() {
         Requirement::parse(
             "Sandstorm in a bottle: gold/locked shadow, 2, 3-7",
             &item_ids
-        ).unwrap(),
+        )
+        .unwrap(),
         Requirement {
             id: 857,
             n_stacks: 2,
@@ -158,7 +161,7 @@ fn test_parse_no_extra() {
 pub fn from_path<Tracker: Default>(
     path: &Path,
     id_map: &ItemIdMap,
-) -> Result<Vec<Requirement<Tracker>>, Box<Error>> {
+) -> Result<Vec<Requirement<Tracker>>, Box<dyn Error>> {
     let mut file = File::open(path)?;
     let mut buf = String::new();
     file.read_to_string(&mut buf)?;
@@ -168,7 +171,7 @@ pub fn from_path<Tracker: Default>(
 pub fn from_str<Tracker: Default>(
     txt: &str,
     id_map: &ItemIdMap,
-) -> Result<Vec<Requirement<Tracker>>, Box<Error>> {
+) -> Result<Vec<Requirement<Tracker>>, Box<dyn Error>> {
     let mut reqs = Vec::new();
     for (n, line) in txt.lines().enumerate() {
         let line = line.trim();
