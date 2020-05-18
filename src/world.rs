@@ -593,7 +593,7 @@ impl Chest {
         let x = f.read_i32::<LE>()? as u16;
         let y = f.read_i32::<LE>()? as u16;
         let name = read_string(f)?;
-        let mut items: [Item; CHEST_MAX_ITEMS as usize] = unsafe { ::std::mem::uninitialized() };
+        let mut items = [Item::default(); CHEST_MAX_ITEMS as usize];
         for item in &mut items[..] {
             *item = Item::read(f)?;
         }
@@ -641,7 +641,7 @@ fn read_string_len(f: &mut File) -> io::Result<usize> {
     Ok(len)
 }
 
-#[derive(Default)]
+#[derive(Default, Copy, Clone)]
 pub struct Item {
     pub stack: u16,
     pub id: i32,
