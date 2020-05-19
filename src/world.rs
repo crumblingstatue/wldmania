@@ -287,7 +287,7 @@ fn read_offsets(f: &mut File) -> Result<Header, Box<dyn Error>> {
     let _times_saved = f.read_u32::<LE>()?;
     let _is_favorite = f.read_u64::<LE>()?;
     let n_pointers = f.read_i16::<LE>()?;
-    if n_pointers != 10 {
+    if n_pointers != 11 {
         return Err(format!("Unsupported number of pointers: {}", n_pointers).into());
     }
     let header = f.read_i32::<LE>()?;
@@ -300,6 +300,7 @@ fn read_offsets(f: &mut File) -> Result<Header, Box<dyn Error>> {
     let unused_1 = f.read_i32::<LE>()?;
     let unused_2 = f.read_i32::<LE>()?;
     let unused_3 = f.read_i32::<LE>()?;
+    let _unknown_4 = f.read_i32::<LE>()?;
     let n_tile_frame_important = f.read_i16::<LE>()? as usize;
     let mut tile_frame_important = vec![0; n_tile_frame_important];
     f.read_exact(&mut tile_frame_important)?;
