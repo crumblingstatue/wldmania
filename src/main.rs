@@ -9,7 +9,7 @@ extern crate rand;
 use ansi_term::Colour::{Green, Red};
 use bidir_map::BidirMap;
 use clap::{App, AppSettings, Arg, SubCommand};
-use rand::{thread_rng, Rng, ThreadRng};
+use rand::{rngs::ThreadRng, seq::SliceRandom, thread_rng, Rng};
 use std::collections::HashMap;
 use std::error::Error;
 use std::fs::File;
@@ -429,7 +429,7 @@ fn bless_chests(cfg_path: &str, world_path: &Path) -> Result<(), Box<dyn Error>>
                     req.only_in.contains(&type_) && !is_inaccessible(chest.x, chest.y, &basic_info)
                 })
                 .collect();
-            rng.shuffle(&mut matching_indexes);
+            matching_indexes.shuffle(&mut rng);
             req.tracker.acceptable_chest_indexes = Box::new(matching_indexes.into_iter().cycle())
         }
     }
