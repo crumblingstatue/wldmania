@@ -598,7 +598,7 @@ impl Chest {
         for item in &mut items[..] {
             *item = Item::read(f)?;
         }
-        Ok(Self { name, x, y, items })
+        Ok(Self { x, y, name, items })
     }
     fn write(&self, f: &mut File) -> io::Result<()> {
         f.write_i32::<LE>(i32::from(self.x))?;
