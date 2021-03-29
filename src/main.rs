@@ -1,5 +1,3 @@
-#![feature(nll)]
-
 extern crate ansi_term;
 extern crate bidir_map;
 extern crate byteorder;
