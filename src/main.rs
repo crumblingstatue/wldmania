@@ -362,7 +362,7 @@ fn place_in_chest(
             item.stack = if min_stack == 1 && max_stack == 1 {
                 1
             } else {
-                rng.gen_range(min_stack, max_stack)
+                rng.gen_range(min_stack..max_stack)
             };
             item.id = id;
             item.prefix_id = prefix;
