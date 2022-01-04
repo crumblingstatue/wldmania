@@ -6,13 +6,13 @@ extern crate rand;
 
 use ansi_term::Colour::{Green, Red};
 use bidir_map::BidirMap;
-use clap::{App, AppSettings, Arg, SubCommand};
+use clap::Parser;
 use rand::{rngs::ThreadRng, seq::SliceRandom, thread_rng, Rng};
 use std::collections::HashMap;
 use std::error::Error;
 use std::fs::File;
 use std::io::{self, prelude::*};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use world::WorldFile;
 
 mod item_id_pairs;
@@ -20,155 +20,134 @@ mod prefix_names;
 mod req_file;
 mod world;
 
+#[derive(Parser)]
+#[clap(about, version)]
+/// Terraria world inspection/manupilation tool
+enum Args {
+    /// Check if world(s) contain the desired items
+    Itemhunt {
+        /// File containing the list of desired items
+        #[clap(required_unless_present("generate-template"))]
+        req_path: PathBuf,
+        /// Generate a template requirements file
+        #[clap(short = 'g')]
+        generate_template: Option<PathBuf>,
+        /// Paths to terraria .wld files to search
+        #[clap(required = true)]
+        world_paths: Vec<PathBuf>,
+    },
+    /// Bless the chests in the world with the desired items
+    BlessChests {
+        /// File containing the list of desired items
+        #[clap(required_unless_present("generate-template"))]
+        req_path: PathBuf,
+        /// Generate a template requirements file
+        #[clap(short = 'g')]
+        generate_template: Option<PathBuf>,
+        /// Paths to terraria .wld files to search
+        #[clap(required = true)]
+        world_paths: Vec<PathBuf>,
+    },
+    /// Find an item in the world
+    Find {
+        /// Name of the item to find
+        item_name: String,
+        /// Paths to terraria .wld files to search
+        #[clap(required = true)]
+        world_paths: Vec<PathBuf>,
+    },
+    /// Fix NPCs that disappeared due to the NaN position bug.
+    FixNpcs {
+        /// Paths to terraria .wld files to fix
+        #[clap(required = true)]
+        world_paths: Vec<PathBuf>,
+    },
+    /// Analyze the contents of chests
+    AnalyzeChests {
+        /// Paths to terraria .wld files to analyze
+        #[clap(required = true)]
+        world_paths: Vec<PathBuf>,
+    },
+    /// Show info about a chest at the given position
+    ChestInfo {
+        /// Path to a Terraria .wld file to look at
+        world_path: PathBuf,
+        /// X position of chest
+        x: u16,
+        /// Y position of chest
+        y: u16,
+    },
+    /// Show the corruption/crimson percentage of worlds
+    CorruptionPercent {
+        /// Paths to terraria .wld files to analyze
+        #[clap(required = true)]
+        world_paths: Vec<PathBuf>,
+    },
+    /// Count the ores in the given worlds
+    CountOres {
+        /// Paths to terraria .wld files to analyze
+        #[clap(required = true)]
+        world_paths: Vec<PathBuf>,
+    },
+}
+
 fn run() -> Result<(), Box<dyn Error>> {
-    let app = App::new("wldmania")
-        .version(env!("CARGO_PKG_VERSION"))
-        .about("Terraria world inspection/manupilation tool")
-        .setting(AppSettings::SubcommandRequiredElseHelp)
-        .subcommand(
-            SubCommand::with_name("itemhunt")
-                .about("Check if world(s) contain the desired items")
-                .arg(
-                    Arg::with_name("req-file")
-                        .index(1)
-                        .required_unless("gen")
-                        .help("File containing the desired items"),
-                )
-                .arg(
-                    Arg::with_name("gen")
-                        .short("g")
-                        .help("Generate a template requirements file.")
-                        .takes_value(true),
-                )
-                .arg(
-                    Arg::with_name("wld-file")
-                        .multiple(true)
-                        .help("Path to a Terraria .wld file.")
-                        .required_unless("gen"),
-                ),
-        )
-        .subcommand(
-            SubCommand::with_name("bless-chests")
-                .about("Bless the chests of your world with the desired items")
-                .arg(
-                    Arg::with_name("req-file")
-                        .index(1)
-                        .required_unless("gen")
-                        .help("File containing the desired items"),
-                )
-                .arg(
-                    Arg::with_name("gen")
-                        .short("g")
-                        .help("Generate a template requirements file.")
-                        .takes_value(true),
-                )
-                .arg(
-                    Arg::with_name("wld-file")
-                        .help("Path to a Terraria .wld file.")
-                        .required_unless("gen"),
-                ),
-        )
-        .subcommand(
-            SubCommand::with_name("find")
-                .about("Find an item in the world")
-                .arg(
-                    Arg::with_name("wld-file")
-                        .required(true)
-                        .help("Path to a Terraria .wld file."),
-                )
-                .arg(
-                    Arg::with_name("item-name")
-                        .required(true)
-                        .help("Name of the item you want to find"),
-                ),
-        )
-        .subcommand(
-            SubCommand::with_name("fix-npcs")
-                .about("Fix NPCs that disappeared due to the NaN position bug.")
-                .arg(
-                    Arg::with_name("wld-file")
-                        .required(true)
-                        .help("Path to a Terraria .wld file."),
-                ),
-        )
-        .subcommand(
-            SubCommand::with_name("analyze-chests")
-                .about("Analyze the contents of chests")
-                .arg(
-                    Arg::with_name("wld-file")
-                        .required(true)
-                        .help("Path to a Terraria .wld file."),
-                ),
-        )
-        .subcommand(
-            SubCommand::with_name("chest-info")
-                .about("Show info about a chest at a particular position")
-                .arg(
-                    Arg::with_name("wld-file")
-                        .required(true)
-                        .help("Path to a Terraria .wld file."),
-                )
-                .arg(Arg::with_name("x").required(true))
-                .arg(Arg::with_name("y").required(true)),
-        )
-        .subcommand(
-            SubCommand::with_name("corruption-percent")
-                .about("Give percentage of how corrupt/crimson your world is")
-                .arg(
-                    Arg::with_name("wld-file")
-                        .required(true)
-                        .help("Path to a Terraria .wld file"),
-                ),
-        )
-        .subcommand(
-            SubCommand::with_name("count-ores")
-                .about("Count most common ores in the world")
-                .arg(
-                    Arg::with_name("wld-file")
-                        .required(true)
-                        .help("Path to a Terraria .wld file"),
-                ),
-        );
-
-    let matches = app.get_matches();
-
-    if let Some(submatches) = matches.subcommand_matches("itemhunt") {
-        if let Some(template_cfg_path) = submatches.value_of("gen") {
-            generate_template_cfg(template_cfg_path)?;
-        } else {
-            let req_path = submatches.value_of("req-file").unwrap();
-            let world_paths = submatches.values_of("wld-file").unwrap();
-            itemhunt(req_path, world_paths)?;
+    match Args::parse() {
+        Args::Itemhunt {
+            generate_template,
+            req_path,
+            world_paths,
+        } => {
+            if let Some(template_cfg_path) = generate_template {
+                generate_template_cfg(&template_cfg_path)?;
+            } else {
+                itemhunt(&req_path, &world_paths)?;
+            }
         }
-    } else if let Some(submatches) = matches.subcommand_matches("bless-chests") {
-        if let Some(template_cfg_path) = submatches.value_of("gen") {
-            generate_template_cfg(template_cfg_path)?;
-        } else {
-            let req_path = submatches.value_of("req-file").unwrap();
-            let world_path = submatches.value_of("wld-file").unwrap();
-            bless_chests(req_path, world_path.as_ref())?;
+        Args::BlessChests {
+            req_path,
+            generate_template,
+            world_paths,
+        } => {
+            if let Some(path) = generate_template {
+                generate_template_cfg(&path)?;
+            } else {
+                for world in world_paths {
+                    bless_chests(&req_path, &world)?;
+                }
+            }
         }
-    } else if let Some(submatches) = matches.subcommand_matches("find") {
-        let world_path = submatches.value_of("wld-file").unwrap();
-        let item_name = submatches.value_of("item-name").unwrap();
-        find_item(world_path.as_ref(), item_name)?;
-    } else if let Some(submatches) = matches.subcommand_matches("fix-npcs") {
-        let world_path = submatches.value_of("wld-file").unwrap();
-        fix_npcs(world_path.as_ref())?;
-    } else if let Some(submatches) = matches.subcommand_matches("analyze-chests") {
-        let world_path = submatches.value_of("wld-file").unwrap();
-        analyze_chests(world_path.as_ref())?;
-    } else if let Some(submatches) = matches.subcommand_matches("chest-info") {
-        let world_path = submatches.value_of("wld-file").unwrap();
-        let x = submatches.value_of("x").unwrap().parse()?;
-        let y = submatches.value_of("y").unwrap().parse()?;
-        chest_info(world_path.as_ref(), x, y).unwrap();
-    } else if let Some(submatches) = matches.subcommand_matches("corruption-percent") {
-        let world_path = submatches.value_of("wld-file").unwrap();
-        corruption_percent(world_path.as_ref())?;
-    } else if let Some(submatches) = matches.subcommand_matches("count-ores") {
-        let world_path = submatches.value_of("wld-file").unwrap();
-        count_ores(world_path.as_ref()).unwrap();
+        Args::Find {
+            world_paths,
+            item_name,
+        } => {
+            for path in world_paths {
+                find_item(&path, &item_name)?;
+            }
+        }
+        Args::FixNpcs { world_paths } => {
+            for path in world_paths {
+                fix_npcs(&path)?;
+            }
+        }
+        Args::AnalyzeChests { world_paths } => {
+            for path in world_paths {
+                analyze_chests(&path)?;
+            }
+        }
+        Args::ChestInfo { world_path, x, y } => {
+            chest_info(&world_path, x, y)?;
+        }
+        Args::CorruptionPercent { world_paths } => {
+            for path in world_paths {
+                corruption_percent(&path)?;
+            }
+        }
+        Args::CountOres { world_paths } => {
+            for path in world_paths {
+                count_ores(&path)?;
+            }
+        }
     }
     Ok(())
 }
@@ -204,7 +183,7 @@ fn chest_info(wld_path: &Path, x: u16, y: u16) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn generate_template_cfg(path: &str) -> io::Result<()> {
+fn generate_template_cfg(path: &Path) -> io::Result<()> {
     let mut f = File::create(path)?;
     f.write_all(include_bytes!("../templates/itemhunt.list"))
 }
@@ -251,16 +230,18 @@ fn is_inaccessible(x: u16, y: u16, basic_info: &::world::BasicInfo) -> bool {
         || y > basic_info.height - INACCESSIBLE_EDGE
 }
 
-fn itemhunt<'a, I: Iterator<Item = &'a str>>(
-    cfg_path: &str,
-    world_paths: I,
-) -> Result<(), Box<dyn Error>> {
+fn itemhunt<T, Iter>(cfg_path: &Path, world_paths: Iter) -> Result<(), Box<dyn Error>>
+where
+    T: AsRef<Path>,
+    Iter: IntoIterator<Item = T>,
+{
     let id_map = item_ids();
-    let mut required_items = req_file::from_path::<u16>(cfg_path.as_ref(), &id_map)?;
+    let mut required_items = req_file::from_path::<u16>(cfg_path, &id_map)?;
     let mut n_meet_reqs = 0;
     for world_path in world_paths {
-        println!("{}:", world_path);
-        let mut file = WorldFile::open(world_path.as_ref(), false)?;
+        let world_path = world_path.as_ref();
+        eprintln!("{}:", world_path.display());
+        let mut file = WorldFile::open(world_path, false)?;
         let basic_info = file.read_basic_info()?;
         let chests = file.read_chests()?;
         for chest in &chests[..] {
@@ -385,7 +366,7 @@ fn validate_req_for_bless<T: Default>(reqs: &[req_file::Requirement<T>]) -> Resu
     Ok(())
 }
 
-fn bless_chests(cfg_path: &str, world_path: &Path) -> Result<(), Box<dyn Error>> {
+fn bless_chests(cfg_path: &Path, world_path: &Path) -> Result<(), Box<dyn Error>> {
     let item_ids = item_ids();
     struct Tracker {
         acceptable_chest_indexes: Box<dyn Iterator<Item = usize>>,
@@ -397,7 +378,7 @@ fn bless_chests(cfg_path: &str, world_path: &Path) -> Result<(), Box<dyn Error>>
             }
         }
     }
-    let mut reqs = req_file::from_path::<Tracker>(cfg_path.as_ref(), &item_ids)?;
+    let mut reqs = req_file::from_path::<Tracker>(cfg_path, &item_ids)?;
     validate_req_for_bless(&reqs)?;
     let mut file = WorldFile::open(world_path, true)?;
     let mut chests = file.read_chests()?;
