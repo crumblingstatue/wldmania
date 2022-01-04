@@ -27,11 +27,7 @@ enum Args {
     /// Check if world(s) contain the desired items
     Itemhunt {
         /// File containing the list of desired items
-        #[clap(required_unless_present("generate-template"))]
         req_path: PathBuf,
-        /// Generate a template requirements file
-        #[clap(short = 'g')]
-        generate_template: Option<PathBuf>,
         /// Paths to terraria .wld files to search
         #[clap(required = true)]
         world_paths: Vec<PathBuf>,
@@ -39,11 +35,7 @@ enum Args {
     /// Bless the chests in the world with the desired items
     BlessChests {
         /// File containing the list of desired items
-        #[clap(required_unless_present("generate-template"))]
         req_path: PathBuf,
-        /// Generate a template requirements file
-        #[clap(short = 'g')]
-        generate_template: Option<PathBuf>,
         /// Paths to terraria .wld files to search
         #[clap(required = true)]
         world_paths: Vec<PathBuf>,
@@ -89,32 +81,27 @@ enum Args {
         #[clap(required = true)]
         world_paths: Vec<PathBuf>,
     },
+    /// Generate template requirements file
+    GenReq {
+        /// Path to write the template file to
+        path: PathBuf,
+    },
 }
 
 fn run() -> Result<(), Box<dyn Error>> {
     match Args::parse() {
         Args::Itemhunt {
-            generate_template,
             req_path,
             world_paths,
         } => {
-            if let Some(template_cfg_path) = generate_template {
-                generate_template_cfg(&template_cfg_path)?;
-            } else {
-                itemhunt(&req_path, &world_paths)?;
-            }
+            itemhunt(&req_path, &world_paths)?;
         }
         Args::BlessChests {
             req_path,
-            generate_template,
             world_paths,
         } => {
-            if let Some(path) = generate_template {
-                generate_template_cfg(&path)?;
-            } else {
-                for world in world_paths {
-                    bless_chests(&req_path, &world)?;
-                }
+            for world in world_paths {
+                bless_chests(&req_path, &world)?;
             }
         }
         Args::Find {
@@ -147,6 +134,9 @@ fn run() -> Result<(), Box<dyn Error>> {
             for path in world_paths {
                 count_ores(&path)?;
             }
+        }
+        Args::GenReq { path } => {
+            generate_template_cfg(&path)?;
         }
     }
     Ok(())
