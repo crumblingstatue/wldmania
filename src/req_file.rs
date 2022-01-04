@@ -103,7 +103,7 @@ impl<Tracker: Default> Requirement<Tracker> {
             end_of_name = from_name.len();
         }
         let (min, max) = stack_range.unwrap_or((1, 1));
-        let only_in = only_in.unwrap_or_else(Vec::new);
+        let only_in = only_in.unwrap_or_default();
         Ok(Requirement {
             id: id_map
                 .id_by_name(&from_name[..end_of_name])
