@@ -1,11 +1,11 @@
 //! Requirements file parsing
 
+use crate::world::ChestType;
+use crate::ItemIdMap;
 use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
-use world::ChestType;
-use ItemIdMap;
 
 #[derive(Debug, PartialEq)]
 pub struct Requirement<Tracker: Default> {
@@ -65,7 +65,7 @@ impl<Tracker: Default> Requirement<Tracker> {
         let from_name = if line.starts_with('*') {
             let first_space = line.find(' ').ok_or("Expected space after *Prefix")?;
             let prefix = &line[1..first_space];
-            prefix_id = ::prefix_names::id_by_name(prefix)
+            prefix_id = crate::prefix_names::id_by_name(prefix)
                 .ok_or_else(|| format!("Invalid prefix: {}", prefix))?;
             &line[first_space + 1..]
         } else {
@@ -122,7 +122,7 @@ impl<Tracker: Default> Requirement<Tracker> {
 
 #[test]
 fn test_parse() {
-    let item_ids = ::item_ids();
+    let item_ids = crate::item_ids();
     assert_eq!(
         Requirement::parse(
             "Sandstorm in a bottle: gold/locked shadow, 2, 3-7",
@@ -143,7 +143,7 @@ fn test_parse() {
 
 #[test]
 fn test_parse_no_extra() {
-    let item_ids = ::item_ids();
+    let item_ids = crate::item_ids();
     assert_eq!(
         Requirement::parse("Sandstorm in a bottle", &item_ids).unwrap(),
         Requirement {

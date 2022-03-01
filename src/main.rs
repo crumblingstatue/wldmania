@@ -1,8 +1,3 @@
-extern crate ansi_term;
-extern crate byteorder;
-extern crate clap;
-extern crate rand;
-
 use ansi_term::Colour::{Green, Red};
 use clap::Parser;
 use rand::{rngs::ThreadRng, seq::SliceRandom, thread_rng, Rng};
@@ -205,7 +200,7 @@ fn item_ids() -> ItemIdMap {
 /// cannot be looted by legit means.
 const INACCESSIBLE_EDGE: u16 = 42;
 
-fn is_inaccessible(x: u16, y: u16, basic_info: &::world::BasicInfo) -> bool {
+fn is_inaccessible(x: u16, y: u16, basic_info: &crate::world::BasicInfo) -> bool {
     x < INACCESSIBLE_EDGE
         || y < INACCESSIBLE_EDGE
         || x > basic_info.width - INACCESSIBLE_EDGE
