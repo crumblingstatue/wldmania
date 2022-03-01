@@ -1,11 +1,9 @@
 extern crate ansi_term;
-extern crate bidir_map;
 extern crate byteorder;
 extern crate clap;
 extern crate rand;
 
 use ansi_term::Colour::{Green, Red};
-use bidir_map::BidirMap;
 use clap::Parser;
 use rand::{rngs::ThreadRng, seq::SliceRandom, thread_rng, Rng};
 use std::collections::HashMap;
@@ -180,24 +178,24 @@ fn generate_template_cfg(path: &Path) -> io::Result<()> {
     f.write_all(include_bytes!("../templates/itemhunt.list"))
 }
 
-pub struct ItemIdMap(BidirMap<u16, &'static str>);
+pub struct ItemIdMap(Vec<(u16, &'static str)>);
 
 impl ItemIdMap {
     fn name_by_id(&self, id: u16) -> Option<&str> {
-        self.0.get_by_first(&id).cloned()
+        self.0.iter().find(|pair| pair.0 == id).map(|pair| pair.1)
     }
     fn id_by_name(&self, name: &str) -> Option<u16> {
-        self.0.get_by_second(&name).cloned()
+        self.0.iter().find(|pair| pair.1 == name).map(|pair| pair.0)
     }
 }
 
 fn item_ids() -> ItemIdMap {
-    let mut item_ids = BidirMap::new();
+    let mut item_ids = Vec::new();
     for line in ITEM_ID_PAIRS.lines() {
         let mut parts = line.split('\t');
         let id: u16 = parts.next().unwrap().parse().unwrap();
         let name = parts.next().unwrap();
-        item_ids.insert(id, name);
+        item_ids.push((id, name));
     }
     ItemIdMap(item_ids)
 }
