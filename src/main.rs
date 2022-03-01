@@ -15,6 +15,8 @@ use std::io::{self, prelude::*};
 use std::path::{Path, PathBuf};
 use world::WorldFile;
 
+use crate::item_id_pairs::ITEM_ID_PAIRS;
+
 mod item_id_pairs;
 mod prefix_names;
 mod req_file;
@@ -185,25 +187,17 @@ impl ItemIdMap {
         self.0.get_by_first(&id).cloned()
     }
     fn id_by_name(&self, name: &str) -> Option<u16> {
-        self.0.get_by_second(&&name.to_lowercase()[..]).cloned()
+        self.0.get_by_second(&name).cloned()
     }
 }
 
 fn item_ids() -> ItemIdMap {
-    use byteorder::{ReadBytesExt, LE};
-    use std::io::{Cursor, SeekFrom};
-    let mut reader = Cursor::new(item_id_pairs::ITEM_ID_PAIRS);
-    let len = reader.read_u16::<LE>().unwrap();
     let mut item_ids = BidirMap::new();
-    for _ in 0..len {
-        let id = reader.read_u16::<LE>().unwrap();
-        let name_len = reader.read_u8().unwrap();
-        let pos = reader.seek(SeekFrom::Current(i64::from(name_len))).unwrap();
-        item_ids.insert(id, unsafe {
-            ::std::str::from_utf8_unchecked(
-                &item_id_pairs::ITEM_ID_PAIRS[pos as usize - name_len as usize..pos as usize],
-            )
-        });
+    for line in ITEM_ID_PAIRS.lines() {
+        let mut parts = line.split('\t');
+        let id: u16 = parts.next().unwrap().parse().unwrap();
+        let name = parts.next().unwrap();
+        item_ids.insert(id, name);
     }
     ItemIdMap(item_ids)
 }
