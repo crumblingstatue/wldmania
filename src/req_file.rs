@@ -125,7 +125,7 @@ fn test_parse() {
     let item_ids = crate::item_ids();
     assert_eq!(
         Requirement::parse(
-            "Sandstorm in a bottle: gold/locked shadow, 2, 3-7",
+            "Sandstorm in a Bottle: gold/locked shadow, 2, 3-7",
             &item_ids
         )
         .unwrap(),
@@ -145,7 +145,7 @@ fn test_parse() {
 fn test_parse_no_extra() {
     let item_ids = crate::item_ids();
     assert_eq!(
-        Requirement::parse("Sandstorm in a bottle", &item_ids).unwrap(),
+        Requirement::parse("Sandstorm in a Bottle", &item_ids).unwrap(),
         Requirement {
             id: 857,
             n_stacks: 1,
