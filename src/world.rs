@@ -160,7 +160,7 @@ impl WorldFile {
             basic_info.width,
             basic_info.height,
             &self.header.tile_frame_important,
-            |id| {
+            |id, _, _| {
                 total += 1;
                 match id {
                     23 | 25 | 163 | 112 => corrupt += 1,
@@ -168,7 +168,6 @@ impl WorldFile {
                     _ => {}
                 }
             },
-            |_, _, _, _| {},
         )?;
         println!(
             "Total: {}, Corrupt: {}, {:.2}%, Crimson: {}, {:.2}%",
@@ -191,12 +190,19 @@ impl WorldFile {
         let mut tungsten = 0;
         let mut gold = 0;
         let mut platinum = 0;
+        let mut sapphire = 0;
+        let mut ruby = 0;
+        let mut emerald = 0;
+        let mut topaz = 0;
+        let mut amethyst = 0;
+        let mut diamond = 0;
+        let mut amber = 0;
         read_tiles(
             &mut self.file,
             basic_info.width,
             basic_info.height,
             &self.header.tile_frame_important,
-            |id| match id {
+            |id, _i, tfo| match id {
                 7 => copper += 1,
                 166 => tin += 1,
                 6 => iron += 1,
@@ -205,9 +211,28 @@ impl WorldFile {
                 168 => tungsten += 1,
                 8 => gold += 1,
                 169 => platinum += 1,
+                63 => sapphire += 1,
+                64 => ruby += 1,
+                65 => emerald += 1,
+                66 => topaz += 1,
+                67 => amethyst += 1,
+                68 => diamond += 1,
+                566 => amber += 1,
+                178 => {
+                    let tfi = tfo.unwrap();
+                    match tfi.x / 18 {
+                        0 => amethyst += 1,
+                        1 => topaz += 1,
+                        2 => sapphire += 1,
+                        3 => emerald += 1,
+                        4 => ruby += 1,
+                        5 => diamond += 1,
+                        6 => amber += 1,
+                        _ => panic!("invalid/unknown gem tile frame x"),
+                    }
+                }
                 _ => {}
             },
-            |_, _, _, _| {},
         )?;
         if copper > 0 {
             println!("copper: {}", copper);
@@ -233,6 +258,14 @@ impl WorldFile {
         if platinum > 0 {
             println!("platinum: {}", platinum);
         }
+        println!("=============");
+        println!("ametyhst: {}", amethyst);
+        println!("topaz: {}", topaz);
+        println!("sapphire: {}", sapphire);
+        println!("emerald: {}", emerald);
+        println!("ruby: {}", ruby);
+        println!("diamond: {}", diamond);
+        println!("amber: {}", amber);
         Ok(())
     }
 }
@@ -423,43 +456,68 @@ fn load_chest_types(
     tile_frame_important: &[u8],
 ) -> Result<HashMap<(u16, u16), ChestType>, Box<dyn Error>> {
     let mut chest_types = HashMap::new();
-    read_tiles(
-        f,
-        w,
-        h,
-        tile_frame_important,
-        |_| {},
-        |tile_id, frame_x, frame_y, i| {
-            if tile_id == 21 {
-                let x = (i / h as usize) as u16;
-                let y = (i % h as usize) as u16;
-                if frame_y == 0 {
-                    let type_ = ChestType::from_frame_x(frame_x);
-                    chest_types.insert((x, y), type_);
-                }
-            } else if tile_id == 88
-            /* dresser */
-            {
-                let x = (i / h as usize) as u16;
-                let y = (i % h as usize) as u16;
-                chest_types.insert((x, y), ChestType::UnknownDresser(frame_x));
+    read_tiles(f, w, h, tile_frame_important, |tile_id, i, frame| {
+        if tile_id == 21 {
+            let tfo = frame.unwrap();
+            let x = (i / h as usize) as u16;
+            let y = (i % h as usize) as u16;
+            if tfo.y == 0 {
+                let type_ = ChestType::from_frame_x(tfo.x);
+                chest_types.insert((x, y), type_);
             }
-        },
-    )?;
+        } else if tile_id == 88
+        /* dresser */
+        {
+            let tfi = frame.unwrap();
+            let x = (i / h as usize) as u16;
+            let y = (i % h as usize) as u16;
+            chest_types.insert((x, y), ChestType::UnknownDresser(tfi.x));
+        }
+    })?;
     Ok(chest_types)
 }
 
-fn read_tiles<TC, TFIC>(
+/// The offset of the subimage a tile has.
+///
+/// Terraria graphics are contained in texture atlases, which we'll call tile frames, because
+/// that seems to be the term the Terraria code base is using.
+/// These atlases contain multiple images, each representing a different piece of graphic.
+/// To know what image to draw, we need to know the offset. In most cases, the offset can be
+/// calculated on the fly when Terraria is running. For example dirt has a lot of different
+/// sub-graphics, but every single graphic is just dirt. It doesn't matter what subimage it has,
+/// it's just dirt. In this case, we'll say that the "tile frame is not important".
+///
+/// But there are cases where multiple kinds of tiles have the same tile id.
+///
+/// For example, all placed gems all have the tile id 178, but the different types of gems
+/// have different tile frame offsets. If we didn't record the offsets, we wouldn't know what kind
+/// of gem we're dealing with.
+///
+/// In these cases, we say that "the tile frame is important". I'm borrowing Terraria terminology
+/// here.
+///
+/// Important tile frames are recorded along with the tile id, but only if the
+/// tile frame is important.
+/// Which tile frames are important are stored in an array called tile_frame_important in the .wld
+/// file, which are read along with other metadata.
+struct TileFrameOffset {
+    x: i16,
+    y: i16,
+}
+
+fn read_tiles<TC>(
     f: &mut File,
     w: u16,
     h: u16,
     tile_frame_important: &[u8],
     mut tile_callback: TC,
-    mut tfi_callback: TFIC,
 ) -> Result<(), Box<dyn Error>>
 where
-    TC: FnMut(u16),
-    TFIC: FnMut(u16, i16, i16, usize),
+    TC: FnMut(
+        /*id: */ u16,
+        /*i:*/ usize,
+        /*frame_offset: */ Option<TileFrameOffset>,
+    ),
 {
     let mut i = 0;
     let len: usize = w as usize * h as usize;
@@ -494,12 +552,14 @@ where
             } else {
                 u16::from(f.read_u8()?)
             };
-            tile_callback(tile_id);
+            let mut frame_important = None;
             if bit_index(tile_frame_important, tile_id as usize) {
-                let frame_x = f.read_i16::<LE>()?;
-                let frame_y = f.read_i16::<LE>()?;
-                tfi_callback(tile_id, frame_x, frame_y, i);
+                frame_important = Some(TileFrameOffset {
+                    x: f.read_i16::<LE>()?,
+                    y: f.read_i16::<LE>()?,
+                });
             }
+            tile_callback(tile_id, i, frame_important);
         }
         if tile_painted {
             let _paint = f.read_u8()?;
