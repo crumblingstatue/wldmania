@@ -394,9 +394,9 @@ pub enum ChestType {
 }
 
 impl ChestType {
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn from_name(name: &str) -> Option<Self> {
         use self::ChestType::*;
-        Some(match &s.to_lowercase()[..] {
+        Some(match &name.to_lowercase()[..] {
             "plain" | "wooden" => Plain,
             "gold" => Gold,
             "sky" | "skyware" => Skyware,
