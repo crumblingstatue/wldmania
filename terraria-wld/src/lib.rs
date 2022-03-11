@@ -8,8 +8,8 @@ use std::io::{self, SeekFrom};
 use std::path::Path;
 
 pub struct Header {
-    id: i32,
-    bounds: Rect,
+    pub id: i32,
+    pub bounds: Rect,
     pub name: String,
     pub height: u16,
     pub width: u16,
@@ -18,20 +18,21 @@ pub struct Header {
     pub spawn_x: i32,
     pub spawn_y: i32,
     pub generator_version: i64,
+    pub guid: [u8; 16],
 }
 
 #[derive(Debug)]
 pub struct WorldFile {
     file: File,
-    base_header: BaseHeader,
+    pub base_header: BaseHeader,
 }
 
 #[derive(Debug)]
-struct Rect {
-    left: i32,
-    right: i32,
-    top: i32,
-    bottom: i32,
+pub struct Rect {
+    pub left: i32,
+    pub right: i32,
+    pub top: i32,
+    pub bottom: i32,
 }
 
 impl WorldFile {
@@ -96,6 +97,7 @@ impl WorldFile {
             generator_version,
             id,
             bounds,
+            guid
         })
     }
     pub fn read_chest_types(
@@ -301,28 +303,28 @@ fn read_rect(f: &mut File) -> io::Result<Rect> {
 
 /// Contains the offsets of different sections, and some other base information.
 #[derive(Debug)]
-struct BaseHeader {
-    offsets: Offsets,
-    times_saved: u32,
-    is_favorite: u64,
-    terraria_version: i32,
-    tile_frame_important: Vec<u8>,
+pub struct BaseHeader {
+    pub version: i32,
+    pub offsets: Offsets,
+    pub times_saved: u32,
+    pub is_favorite: u64,
+    pub tile_frame_important: Vec<u8>,
 }
 
 /// The offsets of different sections
 #[derive(Debug)]
-struct Offsets {
-    header: i32,
-    tiles: i32,
-    chests: i32,
-    signs: i32,
-    npcs: i32,
-    entities: i32,
-    footer: i32,
-    unused_1: i32,
-    unused_2: i32,
-    unused_3: i32,
-    unknown_4: i32,
+pub struct Offsets {
+    pub header: i32,
+    pub tiles: i32,
+    pub chests: i32,
+    pub signs: i32,
+    pub npcs: i32,
+    pub entities: i32,
+    pub footer: i32,
+    pub unused_1: i32,
+    pub unused_2: i32,
+    pub unused_3: i32,
+    pub unknown_4: i32,
 }
 
 impl BaseHeader {
@@ -396,7 +398,7 @@ fn read_base_header(f: &mut File) -> Result<BaseHeader, Box<dyn Error>> {
         tile_frame_important,
         times_saved,
         is_favorite,
-        terraria_version,
+        version: terraria_version,
     })
 }
 
