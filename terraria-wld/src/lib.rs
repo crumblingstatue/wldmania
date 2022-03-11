@@ -394,34 +394,6 @@ pub enum ChestType {
 }
 
 impl ChestType {
-    pub fn from_name(name: &str) -> Option<Self> {
-        use self::ChestType::*;
-        Some(match &name.to_lowercase()[..] {
-            "plain" | "wooden" => Plain,
-            "gold" => Gold,
-            "sky" | "skyware" => Skyware,
-            "ice" => Ice,
-            "granite" => Granite,
-            "marble" => Marble,
-            "mushroom" => Mushroom,
-            "rich mahogany" | "mahogany" => RichMahogany,
-            "ivy" => Ivy,
-            "water" => Water,
-            "web" | "web covered" => WebCovered,
-            "locked gold" => LockedGold,
-            "locked shadow" => LockedShadow,
-            "locked corruption" => LockedCorruption,
-            "locked crimson" => LockedCrimson,
-            "locked hallowed" => LockedHallowed,
-            "locked jungle" => LockedJungle,
-            "locked frozen" => LockedFrozen,
-            "lihzahrd" => Lihzahrd,
-            _ => return None,
-        })
-    }
-}
-
-impl ChestType {
     fn from_frame_x(frame_x: i16) -> Self {
         use self::ChestType::*;
         match frame_x {

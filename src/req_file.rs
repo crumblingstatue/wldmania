@@ -27,12 +27,38 @@ enum Segment {
     OnlyIn(Vec<ChestType>),
 }
 
+pub fn chest_type_from_name(name: &str) -> Option<terraria_wld::ChestType> {
+    use terraria_wld::ChestType::*;
+    Some(match &name.to_lowercase()[..] {
+        "plain" | "wooden" => Plain,
+        "gold" => Gold,
+        "sky" | "skyware" => Skyware,
+        "ice" => Ice,
+        "granite" => Granite,
+        "marble" => Marble,
+        "mushroom" => Mushroom,
+        "rich mahogany" | "mahogany" => RichMahogany,
+        "ivy" => Ivy,
+        "water" => Water,
+        "web" | "web covered" => WebCovered,
+        "locked gold" => LockedGold,
+        "locked shadow" => LockedShadow,
+        "locked corruption" => LockedCorruption,
+        "locked crimson" => LockedCrimson,
+        "locked hallowed" => LockedHallowed,
+        "locked jungle" => LockedJungle,
+        "locked frozen" => LockedFrozen,
+        "lihzahrd" => Lihzahrd,
+        _ => return None,
+    })
+}
+
 fn parse_only_in(seg: &str) -> Result<Segment, Box<dyn Error>> {
     let mut only_in = Vec::new();
     let names = seg.split('/');
     for name in names {
         let name = name.trim();
-        match ChestType::from_name(name) {
+        match chest_type_from_name(name) {
             Some(type_) => only_in.push(type_),
             None => return Err(format!("Invalid chest type: {}", name).into()),
         }
