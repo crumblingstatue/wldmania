@@ -145,7 +145,7 @@ fn main() {
 fn chest_info(wld_path: &Path, x: u16, y: u16) -> Result<(), Box<dyn Error>> {
     let mut file = WorldFile::open(wld_path, false)?;
     let chests = file.read_chests()?;
-    let basic_info = file.read_basic_info()?;
+    let basic_info = file.read_header()?;
     let chest_types = file.read_chest_types(&basic_info)?;
     let ids = item_ids();
     for chest in &chests {
@@ -199,7 +199,7 @@ fn item_ids() -> ItemIdMap {
 /// cannot be looted by legit means.
 const INACCESSIBLE_EDGE: u16 = 42;
 
-fn is_inaccessible(x: u16, y: u16, basic_info: &terraria_wld::BasicInfo) -> bool {
+fn is_inaccessible(x: u16, y: u16, basic_info: &terraria_wld::Header) -> bool {
     x < INACCESSIBLE_EDGE
         || y < INACCESSIBLE_EDGE
         || x > basic_info.width - INACCESSIBLE_EDGE
@@ -218,7 +218,7 @@ where
         let world_path = world_path.as_ref();
         eprintln!("{}:", world_path.display());
         let mut file = WorldFile::open(world_path, false)?;
-        let basic_info = file.read_basic_info()?;
+        let basic_info = file.read_header()?;
         let chests = file.read_chests()?;
         for chest in &chests[..] {
             if is_inaccessible(chest.x, chest.y, &basic_info) {
@@ -270,7 +270,7 @@ fn find_item(world_path: &Path, name: &str) -> Result<(), Box<dyn Error>> {
         .id_by_name(name)
         .ok_or_else(|| format!("No matching id found for item '{}'", name))?;
     let mut file = WorldFile::open(world_path, false)?;
-    let basic_info = file.read_basic_info()?;
+    let basic_info = file.read_header()?;
     let chests = file.read_chests()?;
     for chest in &chests[..] {
         for item in &chest.items[..] {
@@ -285,7 +285,7 @@ fn find_item(world_path: &Path, name: &str) -> Result<(), Box<dyn Error>> {
 
 fn fix_npcs(world_path: &Path) -> Result<(), Box<dyn Error>> {
     let mut file = WorldFile::open(world_path, true)?;
-    let basic_info = file.read_basic_info()?;
+    let basic_info = file.read_header()?;
     let mut npcs = file.read_npcs()?;
     let mut fixed_any = false;
     for npc in &mut npcs {
@@ -358,7 +358,7 @@ fn bless_chests(cfg_path: &Path, world_path: &Path) -> Result<(), Box<dyn Error>
     validate_req_for_bless(&reqs)?;
     let mut file = WorldFile::open(world_path, true)?;
     let mut chests = file.read_chests()?;
-    let basic_info = file.read_basic_info()?;
+    let basic_info = file.read_header()?;
     let chest_types = file.read_chest_types(&basic_info)?;
     let mut rng = thread_rng();
     let chest_indexes = 0..chests.len();

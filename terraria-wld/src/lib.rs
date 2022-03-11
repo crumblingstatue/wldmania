@@ -7,48 +7,59 @@ use std::io::prelude::*;
 use std::io::{self, SeekFrom};
 use std::path::Path;
 
-pub struct BasicInfo {
+pub struct Header {
+    id: i32,
+    bounds: Rect,
+    pub name: String,
     pub height: u16,
     pub width: u16,
     pub surface_y: f64,
     pub seed: String,
     pub spawn_x: i32,
     pub spawn_y: i32,
+    pub generator_version: i64,
 }
 
+#[derive(Debug)]
 pub struct WorldFile {
     file: File,
-    header: Header,
+    base_header: BaseHeader,
+}
+
+#[derive(Debug)]
+struct Rect {
+    left: i32,
+    right: i32,
+    top: i32,
+    bottom: i32,
 }
 
 impl WorldFile {
     pub fn open(path: &Path, write: bool) -> Result<Self, Box<dyn Error>> {
         use std::fs::OpenOptions;
-        let mut f = OpenOptions::new().read(true).write(write).open(path)?;
-        let header = read_offsets(&mut f)?;
-        Ok(Self { file: f, header })
+        let mut file = OpenOptions::new().read(true).write(write).open(path)?;
+        let base_header = read_base_header(&mut file)?;
+        Ok(Self { file, base_header })
     }
     pub fn read_npcs(&mut self) -> Result<Vec<Npc>, Box<dyn Error>> {
-        self.file.seek(SeekFrom::Start(self.header.npcs as u64))?;
+        self.file
+            .seek(SeekFrom::Start(self.base_header.offsets.npcs as u64))?;
         let mut npcs = Vec::new();
         while let Some(npc) = read_npc(&mut self.file)? {
             npcs.push(npc);
         }
         Ok(npcs)
     }
-    pub fn read_basic_info(&mut self) -> Result<BasicInfo, Box<dyn Error>> {
+    pub fn read_header(&mut self) -> Result<Header, Box<dyn Error>> {
         let f = &mut self.file;
-        f.seek(SeekFrom::Start(self.header.header as u64))?;
-        let _name = read_string(f)?;
+        f.seek(SeekFrom::Start(self.base_header.offsets.header as u64))?;
+        let name = read_string(f)?;
         let seed = read_string(f)?;
-        let _gen_version = f.read_i64::<LE>()?;
+        let generator_version = f.read_i64::<LE>()?;
         let mut guid = [0u8; 16];
         f.read_exact(&mut guid)?;
-        let _id = f.read_i32::<LE>()?;
-        let _bound_left = f.read_i32::<LE>()?;
-        let _bound_right = f.read_i32::<LE>()?;
-        let _bound_top = f.read_i32::<LE>()?;
-        let _bound_bottom = f.read_i32::<LE>()?;
+        let id = f.read_i32::<LE>()?;
+        let bounds = read_rect(f)?;
         let height = f.read_i32::<LE>()?;
         let width = f.read_i32::<LE>()?;
         let _expert = f.read_u8()?;
@@ -74,31 +85,36 @@ impl WorldFile {
         let spawn_x = f.read_i32::<LE>()?;
         let spawn_y = f.read_i32::<LE>()?;
         let surface_y = f.read_f64::<LE>()?;
-        Ok(BasicInfo {
+        Ok(Header {
             width: width as u16,
             height: height as u16,
             surface_y,
             seed,
             spawn_x,
             spawn_y,
+            name,
+            generator_version,
+            id,
+            bounds,
         })
     }
     pub fn read_chest_types(
         &mut self,
-        basic_info: &BasicInfo,
+        basic_info: &Header,
     ) -> Result<HashMap<(u16, u16), ChestType>, Box<dyn Error>> {
-        self.file.seek(SeekFrom::Start(self.header.tiles as u64))?;
+        self.file
+            .seek(SeekFrom::Start(self.base_header.offsets.tiles as u64))?;
         let chest_types = load_chest_types(
             &mut self.file,
             basic_info.width,
             basic_info.height,
-            &self.header.tile_frame_important,
+            &self.base_header.tile_frame_important,
         )?;
         Ok(chest_types)
     }
     pub fn read_chests(&mut self) -> Result<Vec<Chest>, Box<dyn Error>> {
         let f = &mut self.file;
-        f.seek(SeekFrom::Start(self.header.chests as u64))?;
+        f.seek(SeekFrom::Start(self.base_header.offsets.chests as u64))?;
         let n_chests = f.read_i16::<LE>()?;
         let items_per_chest = f.read_i16::<LE>()?;
         if items_per_chest != ITEMS_PER_CHEST {
@@ -112,7 +128,7 @@ impl WorldFile {
     }
     pub fn write_npcs(&mut self, npcs: &[Npc]) -> Result<(), Box<dyn Error>> {
         let f = &mut self.file;
-        f.seek(SeekFrom::Start(self.header.npcs as u64))?;
+        f.seek(SeekFrom::Start(self.base_header.offsets.npcs as u64))?;
         for npc in npcs {
             write_npc(f, npc)?;
         }
@@ -120,24 +136,26 @@ impl WorldFile {
     }
     pub fn write_chests(&mut self, chests: &[Chest]) -> Result<(), Box<dyn Error>> {
         // Save the contents after chests into a buffer to write back later
-        self.file.seek(SeekFrom::Start(self.header.signs as u64))?;
+        self.file
+            .seek(SeekFrom::Start(self.base_header.offsets.signs as u64))?;
         let mut rest_buf = Vec::new();
         self.file.read_to_end(&mut rest_buf)?;
-        self.file.seek(SeekFrom::Start(self.header.chests as u64))?;
+        self.file
+            .seek(SeekFrom::Start(self.base_header.offsets.chests as u64))?;
         self.write_chests_inner(chests)?;
         let new_signs_offset = self.file.seek(SeekFrom::Current(0))?;
         // Write back everything after chests
         self.file.write_all(&rest_buf)?;
-        let offs_diff = new_signs_offset as i32 - self.header.signs as i32;
+        let offs_diff = new_signs_offset as i32 - self.base_header.offsets.signs as i32;
         self.file.seek(SeekFrom::Start(OFFSET_TABLE_OFFSET))?;
-        self.header.signs += offs_diff;
-        self.header.npcs += offs_diff;
-        self.header.entities += offs_diff;
-        self.header.footer += offs_diff;
-        self.header.unused_1 += offs_diff;
-        self.header.unused_2 += offs_diff;
-        self.header.unused_3 += offs_diff;
-        self.header.write(&mut self.file)?;
+        self.base_header.offsets.signs += offs_diff;
+        self.base_header.offsets.npcs += offs_diff;
+        self.base_header.offsets.entities += offs_diff;
+        self.base_header.offsets.footer += offs_diff;
+        self.base_header.offsets.unused_1 += offs_diff;
+        self.base_header.offsets.unused_2 += offs_diff;
+        self.base_header.offsets.unused_3 += offs_diff;
+        self.base_header.write(&mut self.file)?;
         Ok(())
     }
     fn write_chests_inner(&mut self, chests: &[Chest]) -> Result<(), Box<dyn Error>> {
@@ -150,8 +168,9 @@ impl WorldFile {
         Ok(())
     }
     pub fn corruption_percent(&mut self) -> Result<(), Box<dyn Error>> {
-        let basic_info = self.read_basic_info()?;
-        self.file.seek(SeekFrom::Start(self.header.tiles as u64))?;
+        let basic_info = self.read_header()?;
+        self.file
+            .seek(SeekFrom::Start(self.base_header.offsets.tiles as u64))?;
         let mut total = 0;
         let mut corrupt = 0;
         let mut crimson = 0;
@@ -159,7 +178,7 @@ impl WorldFile {
             &mut self.file,
             basic_info.width,
             basic_info.height,
-            &self.header.tile_frame_important,
+            &self.base_header.tile_frame_important,
             |id, _, _| {
                 total += 1;
                 match id {
@@ -180,8 +199,9 @@ impl WorldFile {
         Ok(())
     }
     pub fn count_ores(&mut self) -> Result<(), Box<dyn Error>> {
-        let basic_info = self.read_basic_info()?;
-        self.file.seek(SeekFrom::Start(self.header.tiles as u64))?;
+        let basic_info = self.read_header()?;
+        self.file
+            .seek(SeekFrom::Start(self.base_header.offsets.tiles as u64))?;
         let mut copper = 0;
         let mut tin = 0;
         let mut iron = 0;
@@ -201,7 +221,7 @@ impl WorldFile {
             &mut self.file,
             basic_info.width,
             basic_info.height,
-            &self.header.tile_frame_important,
+            &self.base_header.tile_frame_important,
             |id, _i, tfo| match id {
                 7 => copper += 1,
                 166 => tin += 1,
@@ -270,7 +290,28 @@ impl WorldFile {
     }
 }
 
-struct Header {
+fn read_rect(f: &mut File) -> io::Result<Rect> {
+    Ok(Rect {
+        left: f.read_i32::<LE>()?,
+        right: f.read_i32::<LE>()?,
+        top: f.read_i32::<LE>()?,
+        bottom: f.read_i32::<LE>()?,
+    })
+}
+
+/// Contains the offsets of different sections, and some other base information.
+#[derive(Debug)]
+struct BaseHeader {
+    offsets: Offsets,
+    times_saved: u32,
+    is_favorite: u64,
+    terraria_version: i32,
+    tile_frame_important: Vec<u8>,
+}
+
+/// The offsets of different sections
+#[derive(Debug)]
+struct Offsets {
     header: i32,
     tiles: i32,
     chests: i32,
@@ -281,21 +322,22 @@ struct Header {
     unused_1: i32,
     unused_2: i32,
     unused_3: i32,
-    tile_frame_important: Vec<u8>,
+    unknown_4: i32,
 }
 
-impl Header {
+impl BaseHeader {
     fn write(&self, f: &mut File) -> Result<(), io::Error> {
-        f.write_i32::<LE>(self.header)?;
-        f.write_i32::<LE>(self.tiles)?;
-        f.write_i32::<LE>(self.chests)?;
-        f.write_i32::<LE>(self.signs)?;
-        f.write_i32::<LE>(self.npcs)?;
-        f.write_i32::<LE>(self.entities)?;
-        f.write_i32::<LE>(self.footer)?;
-        f.write_i32::<LE>(self.unused_1)?;
-        f.write_i32::<LE>(self.unused_2)?;
-        f.write_i32::<LE>(self.unused_3)?;
+        f.write_i32::<LE>(self.offsets.header)?;
+        f.write_i32::<LE>(self.offsets.tiles)?;
+        f.write_i32::<LE>(self.offsets.chests)?;
+        f.write_i32::<LE>(self.offsets.signs)?;
+        f.write_i32::<LE>(self.offsets.npcs)?;
+        f.write_i32::<LE>(self.offsets.entities)?;
+        f.write_i32::<LE>(self.offsets.footer)?;
+        f.write_i32::<LE>(self.offsets.unused_1)?;
+        f.write_i32::<LE>(self.offsets.unused_2)?;
+        f.write_i32::<LE>(self.offsets.unused_3)?;
+        f.write_i32::<LE>(self.offsets.unknown_4)?;
         Ok(())
     }
 }
@@ -306,8 +348,8 @@ fn bit_index(bytes: &[u8], idx: usize) -> bool {
     bsa(bytes[byte_idx], bit_idx)
 }
 
-fn read_offsets(f: &mut File) -> Result<Header, Box<dyn Error>> {
-    let _terraria_ver = f.read_i32::<LE>()?;
+fn read_base_header(f: &mut File) -> Result<BaseHeader, Box<dyn Error>> {
+    let terraria_version = f.read_i32::<LE>()?;
     let mut magic = [0u8; 7];
     f.read_exact(&mut magic)?;
     if magic[..] != b"relogic"[..] {
@@ -317,11 +359,11 @@ fn read_offsets(f: &mut File) -> Result<Header, Box<dyn Error>> {
     if filetype != 2 {
         return Err(format!("Unsupported filetype: {}", filetype).into());
     }
-    let _times_saved = f.read_u32::<LE>()?;
-    let _is_favorite = f.read_u64::<LE>()?;
-    let n_pointers = f.read_i16::<LE>()?;
-    if n_pointers != 11 {
-        return Err(format!("Unsupported number of pointers: {}", n_pointers).into());
+    let times_saved = f.read_u32::<LE>()?;
+    let is_favorite = f.read_u64::<LE>()?;
+    let n_offsets = f.read_i16::<LE>()?;
+    if n_offsets != 11 {
+        return Err(format!("Unsupported number of offsets: {}", n_offsets).into());
     }
     let header = f.read_i32::<LE>()?;
     let tiles = f.read_i32::<LE>()?;
@@ -333,22 +375,28 @@ fn read_offsets(f: &mut File) -> Result<Header, Box<dyn Error>> {
     let unused_1 = f.read_i32::<LE>()?;
     let unused_2 = f.read_i32::<LE>()?;
     let unused_3 = f.read_i32::<LE>()?;
-    let _unknown_4 = f.read_i32::<LE>()?;
+    let unknown_4 = f.read_i32::<LE>()?;
     let n_tile_frame_important = f.read_i16::<LE>()? as usize;
     let mut tile_frame_important = vec![0; n_tile_frame_important];
     f.read_exact(&mut tile_frame_important)?;
-    Ok(Header {
-        header,
-        tiles,
-        chests,
-        signs,
-        npcs,
-        entities,
-        footer,
-        unused_1,
-        unused_2,
-        unused_3,
+    Ok(BaseHeader {
+        offsets: Offsets {
+            header,
+            tiles,
+            chests,
+            signs,
+            npcs,
+            entities,
+            footer,
+            unused_1,
+            unused_2,
+            unused_3,
+            unknown_4
+        },
         tile_frame_important,
+        times_saved,
+        is_favorite,
+        terraria_version,
     })
 }
 
@@ -558,7 +606,7 @@ where
     Ok(())
 }
 
-impl BasicInfo {
+impl Header {
     pub fn tile_to_gps_pos(&self, x: u16, y: u16) -> GpsPos {
         let raw_x = i32::from(x) * 2 - i32::from(self.width);
         let raw_y = self.surface_y * 2.0 - f64::from(y) * 2.0;

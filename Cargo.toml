@@ -11,4 +11,4 @@ rand = "0.8.4"
 terraria-wld = { path = "terraria-wld" }
 
 [workspace]
-members = ["terraria-wld"]
+members = ["terraria-wld", "wldmanip"]
