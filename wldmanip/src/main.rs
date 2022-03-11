@@ -1,3 +1,5 @@
+#![feature(let_chains)]
+
 use std::path::{Path, PathBuf};
 
 use directories::ProjectDirs;
@@ -14,6 +16,8 @@ use terraria_wld::{Header, WorldFile};
 #[derive(Serialize, Deserialize, Default)]
 struct Config {
     recent_files: RecentlyUsedList<PathBuf>,
+    #[serde(default)]
+    load_most_recent: bool,
 }
 
 impl Config {
@@ -47,6 +51,9 @@ async fn main() -> anyhow::Result<()> {
     let mut header = None;
     let mut cfg = Config::load_or_default()?;
     prevent_quit();
+    if cfg.load_most_recent && let Some(most_recent) = cfg.recent_files.most_recent().cloned() && load_world(&most_recent, &mut header, &mut world) {
+        cfg.recent_files.use_(most_recent);
+    }
     loop {
         clear_background(WHITE);
 
@@ -76,6 +83,8 @@ async fn main() -> anyhow::Result<()> {
                     if let Some(used) = used {
                         cfg.recent_files.use_(used);
                     }
+                    ui.separator();
+                    ui.checkbox(&mut cfg.load_most_recent, "Load most recent file at start");
                 });
             });
             if let Some(world) = &world {
