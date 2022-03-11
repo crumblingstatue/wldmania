@@ -6,14 +6,13 @@ use std::error::Error;
 use std::fs::File;
 use std::io::{self, prelude::*};
 use std::path::{Path, PathBuf};
-use world::WorldFile;
+use terraria_wld::WorldFile;
 
 use crate::item_id_pairs::ITEM_ID_PAIRS;
 
 mod item_id_pairs;
 mod prefix_names;
 mod req_file;
-mod world;
 
 #[derive(Parser)]
 #[clap(about, version)]
@@ -200,7 +199,7 @@ fn item_ids() -> ItemIdMap {
 /// cannot be looted by legit means.
 const INACCESSIBLE_EDGE: u16 = 42;
 
-fn is_inaccessible(x: u16, y: u16, basic_info: &crate::world::BasicInfo) -> bool {
+fn is_inaccessible(x: u16, y: u16, basic_info: &terraria_wld::BasicInfo) -> bool {
     x < INACCESSIBLE_EDGE
         || y < INACCESSIBLE_EDGE
         || x > basic_info.width - INACCESSIBLE_EDGE
@@ -308,7 +307,7 @@ fn fix_npcs(world_path: &Path) -> Result<(), Box<dyn Error>> {
 }
 
 fn place_in_chest(
-    chest: &mut world::Chest,
+    chest: &mut terraria_wld::Chest,
     id: i32,
     prefix: u8,
     min_stack: u16,

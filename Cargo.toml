@@ -5,7 +5,10 @@ authors = ["Mika Attila <radiantstatue@gmail.com>"]
 edition = "2021"
 
 [dependencies]
-byteorder = "1.4.3"
 clap = {version = "3.0.4", features = ["derive"]}
 ansi_term = "0.12.1"
 rand = "0.8.4"
+terraria-wld = { path = "terraria-wld" }
+
+[workspace]
+members = ["terraria-wld"]

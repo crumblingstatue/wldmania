@@ -250,6 +250,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "terraria-wld"
+version = "0.1.0"
+dependencies = [
+ "byteorder",
+]
+
+[[package]]
 name = "textwrap"
 version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -309,7 +316,7 @@ name = "wldmania"
 version = "0.1.0"
 dependencies = [
  "ansi_term",
- "byteorder",
  "clap",
  "rand",
+ "terraria-wld",
 ]

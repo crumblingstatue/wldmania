@@ -1,11 +1,11 @@
 //! Requirements file parsing
 
-use crate::world::ChestType;
 use crate::ItemIdMap;
 use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
+use terraria_wld::ChestType;
 
 #[derive(Debug, PartialEq)]
 pub struct Requirement<Tracker: Default> {
