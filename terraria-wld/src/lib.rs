@@ -188,90 +188,7 @@ impl WorldFile {
         );
         Ok(())
     }
-    pub fn count_ores(&mut self) -> Result<(), Box<dyn Error>> {
-        self.file
-            .seek(SeekFrom::Start(self.base_header.offsets.tiles as u64))?;
-        let mut copper = 0;
-        let mut tin = 0;
-        let mut iron = 0;
-        let mut lead = 0;
-        let mut silver = 0;
-        let mut tungsten = 0;
-        let mut gold = 0;
-        let mut platinum = 0;
-        let mut sapphire = 0;
-        let mut ruby = 0;
-        let mut emerald = 0;
-        let mut topaz = 0;
-        let mut amethyst = 0;
-        let mut diamond = 0;
-        let mut amber = 0;
-        self.read_tiles(|id, _i, tfo| match id {
-            7 => copper += 1,
-            166 => tin += 1,
-            6 => iron += 1,
-            167 => lead += 1,
-            9 => silver += 1,
-            168 => tungsten += 1,
-            8 => gold += 1,
-            169 => platinum += 1,
-            63 => sapphire += 1,
-            64 => ruby += 1,
-            65 => emerald += 1,
-            66 => topaz += 1,
-            67 => amethyst += 1,
-            68 => diamond += 1,
-            566 => amber += 1,
-            178 => {
-                let tfi = tfo.unwrap();
-                match tfi.x / 18 {
-                    0 => amethyst += 1,
-                    1 => topaz += 1,
-                    2 => sapphire += 1,
-                    3 => emerald += 1,
-                    4 => ruby += 1,
-                    5 => diamond += 1,
-                    6 => amber += 1,
-                    _ => panic!("invalid/unknown gem tile frame x"),
-                }
-            }
-            _ => {}
-        })?;
-        if copper > 0 {
-            println!("copper: {}", copper);
-        }
-        if tin > 0 {
-            println!("tin: {}", tin);
-        }
-        if iron > 0 {
-            println!("iron: {}", iron);
-        }
-        if lead > 0 {
-            println!("lead: {}", lead);
-        }
-        if silver > 0 {
-            println!("silver: {}", silver);
-        }
-        if tungsten > 0 {
-            println!("tungsten: {}", tungsten);
-        }
-        if gold > 0 {
-            println!("gold: {}", gold);
-        }
-        if platinum > 0 {
-            println!("platinum: {}", platinum);
-        }
-        println!("=============");
-        println!("ametyhst: {}", amethyst);
-        println!("topaz: {}", topaz);
-        println!("sapphire: {}", sapphire);
-        println!("emerald: {}", emerald);
-        println!("ruby: {}", ruby);
-        println!("diamond: {}", diamond);
-        println!("amber: {}", amber);
-        Ok(())
-    }
-    fn read_tiles<TC>(&mut self, mut tile_callback: TC) -> Result<(), Box<dyn Error>>
+    pub fn read_tiles<TC>(&mut self, mut tile_callback: TC) -> Result<(), Box<dyn Error>>
     where
         TC: FnMut(
             /*id: */ u16,
@@ -585,9 +502,9 @@ impl ChestType {
 /// tile frame is important.
 /// Which tile frames are important are stored in an array called tile_frame_important in the .wld
 /// file, which are read along with other metadata.
-struct TileFrameOffset {
-    x: i16,
-    y: i16,
+pub struct TileFrameOffset {
+    pub x: i16,
+    pub y: i16,
 }
 
 impl Header {
