@@ -347,12 +347,6 @@ impl BaseHeader {
     }
 }
 
-fn bit_index(bytes: &[u8], idx: usize) -> bool {
-    let byte_idx = idx / 8;
-    let bit_idx = idx % 8;
-    bytes[byte_idx].nth_bit_set(bit_idx)
-}
-
 fn read_base_header(f: &mut File) -> Result<BaseHeader, Box<dyn Error>> {
     let terraria_version = f.read_i32::<LE>()?;
     let mut magic = [0u8; 7];
@@ -415,6 +409,14 @@ trait Bits {
 impl Bits for u8 {
     fn nth_bit_set(&self, index: usize) -> bool {
         *self & (1 << index as u8) != 0
+    }
+}
+
+impl Bits for [u8] {
+    fn nth_bit_set(&self, index: usize) -> bool {
+        let byte_idx = index / 8;
+        let bit_idx = index % 8;
+        self[byte_idx].nth_bit_set(bit_idx)
     }
 }
 
@@ -583,7 +585,7 @@ where
                 u16::from(f.read_u8()?)
             };
             let mut frame_important = None;
-            if bit_index(tile_frame_important, tile_id as usize) {
+            if tile_frame_important.nth_bit_set(tile_id as usize) {
                 frame_important = Some(TileFrameOffset {
                     x: f.read_i16::<LE>()?,
                     y: f.read_i16::<LE>()?,
