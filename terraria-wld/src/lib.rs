@@ -19,6 +19,7 @@ pub struct Header {
     pub spawn_y: i32,
     pub generator_version: i64,
     pub guid: [u8; 16],
+    pub game_mode: i32,
 }
 
 #[derive(Debug)]
@@ -63,6 +64,7 @@ impl WorldFile {
         let bounds = read_rect(f)?;
         let height = f.read_i32::<LE>()?;
         let width = f.read_i32::<LE>()?;
+        let game_mode = f.read_i32::<LE>()?;
         let _expert = f.read_u8()?;
         let _creation_time = f.read_i64::<LE>()?;
         let _moon_type = f.read_u8()?;
@@ -97,7 +99,8 @@ impl WorldFile {
             generator_version,
             id,
             bounds,
-            guid
+            guid,
+            game_mode
         })
     }
     pub fn read_chest_types(

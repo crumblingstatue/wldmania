@@ -1,4 +1,4 @@
-#![feature(let_chains)]
+#![feature(let_chains, decl_macro)]
 
 use std::path::{Path, PathBuf};
 
@@ -102,35 +102,32 @@ async fn main() -> anyhow::Result<()> {
                         if let Some(header) = &header {
                             ui.heading("Header");
                             Grid::new("header_grid").striped(true).show(ui, |ui| {
-                                ui.label("World name");
-                                ui.label(&header.name);
-                                ui.end_row();
-                                ui.label("Seed");
-                                ui.label(&header.seed);
-                                ui.end_row();
-                                ui.label("Generator version");
-                                ui.label(&header.generator_version.to_string());
-                                ui.end_row();
-                                ui.label("GUID");
-                                ui.label(guid_to_hex(&header.guid));
-                                ui.end_row();
-                                ui.label("World id");
-                                ui.label(header.id.to_string());
-                                ui.end_row();
+                                macro field($name:expr, $val:expr) {
+                                    ui.label($name);
+                                    ui.label($val.to_string());
+                                    ui.end_row();
+                                }
+                                field!("Name", header.name);
+                                field!("Seed", header.seed);
+                                field!("Generator version", header.generator_version);
+                                field!("GUID", guid_to_hex(&header.guid));
+                                field!("World id", header.id);
                                 ui.label("== Bounds ==");
                                 ui.end_row();
-                                ui.label("left");
-                                ui.label(header.bounds.left.to_string());
-                                ui.end_row();
-                                ui.label("right");
-                                ui.label(header.bounds.right.to_string());
-                                ui.end_row();
-                                ui.label("top");
-                                ui.label(header.bounds.top.to_string());
-                                ui.end_row();
-                                ui.label("bottom");
-                                ui.label(header.bounds.bottom.to_string());
-                                ui.end_row();
+                                field!("left", header.bounds.left);
+                                field!("right", header.bounds.right);
+                                field!("top", header.bounds.top);
+                                field!("bottom", header.bounds.bottom);
+                                field!("width", header.width);
+                                field!("height", header.height);
+                                field!(
+                                    "Game mode",
+                                    format!(
+                                        "{} ({})",
+                                        game_mode_name(header.game_mode),
+                                        header.game_mode
+                                    )
+                                );
                             });
                         }
                     })
@@ -176,5 +173,15 @@ fn load_world(path: &Path, header: &mut Option<Header>, world: &mut Option<World
                 .show();
             false
         }
+    }
+}
+
+fn game_mode_name(name: i32) -> &'static str {
+    match name {
+        0 => "Normal",
+        1 => "Expert",
+        2 => "Master",
+        3 => "Journey",
+        _ => "Unknown",
     }
 }
