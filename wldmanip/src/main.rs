@@ -102,22 +102,21 @@ async fn main() -> anyhow::Result<()> {
                         if let Some(header) = &header {
                             ui.heading("Header");
                             Grid::new("header_grid").striped(true).show(ui, |ui| {
-                                macro field($name:expr, $val:expr) {
-                                    ui.label($name);
-                                    ui.label($val.to_string());
-                                    ui.end_row();
-                                }
+                                field_macro!(ui, field);
                                 field!("Name", header.name);
                                 field!("Seed", header.seed);
                                 field!("Generator version", header.generator_version);
                                 field!("GUID", guid_to_hex(&header.guid));
                                 field!("World id", header.id);
-                                ui.label("== Bounds ==");
+                                ui.label("Bounds");
+                                Grid::new("bounds_grid").striped(true).show(ui, |ui| {
+                                    field_macro!(ui, field2);
+                                    field2!("left", header.bounds.left);
+                                    field2!("right", header.bounds.right);
+                                    field2!("top", header.bounds.top);
+                                    field2!("bottom", header.bounds.bottom);
+                                });
                                 ui.end_row();
-                                field!("left", header.bounds.left);
-                                field!("right", header.bounds.right);
-                                field!("top", header.bounds.top);
-                                field!("bottom", header.bounds.bottom);
                                 field!("width", header.width);
                                 field!("height", header.height);
                                 field!(
@@ -147,6 +146,14 @@ async fn main() -> anyhow::Result<()> {
         }
 
         next_frame().await;
+    }
+}
+
+macro field_macro($ui:expr, $macname:ident) {
+    macro $macname($name:expr, $val:expr) {
+        $ui.label($name);
+        $ui.label($val.to_string());
+        $ui.end_row();
     }
 }
 
