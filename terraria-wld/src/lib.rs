@@ -100,7 +100,7 @@ impl WorldFile {
             id,
             bounds,
             guid,
-            game_mode
+            game_mode,
         })
     }
     pub fn read_chest_types(
@@ -349,8 +349,8 @@ impl BaseHeader {
 
 fn bit_index(bytes: &[u8], idx: usize) -> bool {
     let byte_idx = idx / 8;
-    let bit_idx = (idx % 8) as u8;
-    bsa(bytes[byte_idx], bit_idx)
+    let bit_idx = idx % 8;
+    bytes[byte_idx].nth_bit_set(bit_idx)
 }
 
 fn read_base_header(f: &mut File) -> Result<BaseHeader, Box<dyn Error>> {
@@ -396,7 +396,7 @@ fn read_base_header(f: &mut File) -> Result<BaseHeader, Box<dyn Error>> {
             unused_1,
             unused_2,
             unused_3,
-            unknown_4
+            unknown_4,
         },
         tile_frame_important,
         times_saved,
@@ -408,17 +408,22 @@ fn read_base_header(f: &mut File) -> Result<BaseHeader, Box<dyn Error>> {
 const ITEMS_PER_CHEST: i16 = 40;
 const OFFSET_TABLE_OFFSET: u64 = 0x1A;
 
-// bit set at
-fn bsa(byte: u8, idx: u8) -> bool {
-    byte & (1 << idx) != 0
+trait Bits {
+    fn nth_bit_set(&self, index: usize) -> bool;
+}
+
+impl Bits for u8 {
+    fn nth_bit_set(&self, index: usize) -> bool {
+        *self & (1 << index as u8) != 0
+    }
 }
 
 #[test]
-fn test_bsa() {
-    assert!(bsa(0b0000_0001, 0));
-    assert!(!bsa(0b0000_0000, 0));
-    assert!(bsa(0b0000_0010, 1));
-    assert!(bsa(0b1000_0010, 7));
+fn test_bits_u8() {
+    assert!(0b0000_0001.nth_bit_set(0));
+    assert!(!0b0000_0000.nth_bit_set(0));
+    assert!(0b0000_0010.nth_bit_set(1));
+    assert!(0b1000_0010.nth_bit_set(7));
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -548,25 +553,25 @@ where
     let len: usize = w as usize * h as usize;
     while i < len {
         let flags1 = f.read_u8()?;
-        let flags2_present = bsa(flags1, 0);
-        let not_air = bsa(flags1, 1);
-        let has_wall = bsa(flags1, 2);
-        let liquid_type_lo = bsa(flags1, 3);
-        let liquid_type_hi = bsa(flags1, 4);
-        let long_type_id = bsa(flags1, 5);
-        let rle_on = bsa(flags1, 6);
-        let rle_on_long = bsa(flags1, 7);
+        let flags2_present = flags1.nth_bit_set(0);
+        let not_air = flags1.nth_bit_set(1);
+        let has_wall = flags1.nth_bit_set(2);
+        let liquid_type_lo = flags1.nth_bit_set(3);
+        let liquid_type_hi = flags1.nth_bit_set(4);
+        let long_type_id = flags1.nth_bit_set(5);
+        let rle_on = flags1.nth_bit_set(6);
+        let rle_on_long = flags1.nth_bit_set(7);
         let flags3_present = if flags2_present {
             let flags2 = f.read_u8()?;
-            bsa(flags2, 0)
+            flags2.nth_bit_set(0)
         } else {
             false
         };
         let (tile_painted, wall_painted);
         if flags3_present {
             let flags3 = f.read_u8()?;
-            tile_painted = bsa(flags3, 3);
-            wall_painted = bsa(flags3, 4);
+            tile_painted = flags3.nth_bit_set(3);
+            wall_painted = flags3.nth_bit_set(4);
         } else {
             tile_painted = false;
             wall_painted = false;
