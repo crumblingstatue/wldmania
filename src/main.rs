@@ -145,8 +145,7 @@ fn main() {
 fn chest_info(wld_path: &Path, x: u16, y: u16) -> Result<(), Box<dyn Error>> {
     let mut file = WorldFile::open(wld_path, false)?;
     let chests = file.read_chests()?;
-    let basic_info = file.read_header()?;
-    let chest_types = file.read_chest_types(&basic_info)?;
+    let chest_types = file.read_chest_types()?;
     let ids = item_ids();
     for chest in &chests {
         if chest.x == x && chest.y == y {
@@ -199,11 +198,11 @@ fn item_ids() -> ItemIdMap {
 /// cannot be looted by legit means.
 const INACCESSIBLE_EDGE: u16 = 42;
 
-fn is_inaccessible(x: u16, y: u16, basic_info: &terraria_wld::Header) -> bool {
+fn is_inaccessible(x: u16, y: u16, header: &terraria_wld::Header) -> bool {
     x < INACCESSIBLE_EDGE
         || y < INACCESSIBLE_EDGE
-        || x > basic_info.width - INACCESSIBLE_EDGE
-        || y > basic_info.height - INACCESSIBLE_EDGE
+        || x > header.width - INACCESSIBLE_EDGE
+        || y > header.height - INACCESSIBLE_EDGE
 }
 
 fn itemhunt<T, Iter>(cfg_path: &Path, world_paths: Iter) -> Result<(), Box<dyn Error>>
@@ -218,10 +217,10 @@ where
         let world_path = world_path.as_ref();
         eprintln!("{}:", world_path.display());
         let mut file = WorldFile::open(world_path, false)?;
-        let basic_info = file.read_header()?;
+        let header = file.read_header()?;
         let chests = file.read_chests()?;
         for chest in &chests[..] {
-            if is_inaccessible(chest.x, chest.y, &basic_info) {
+            if is_inaccessible(chest.x, chest.y, &header) {
                 eprintln!(
                     "Warning: Ignoring out-of-bounds chest at {}, {}",
                     chest.x, chest.y
@@ -270,12 +269,12 @@ fn find_item(world_path: &Path, name: &str) -> Result<(), Box<dyn Error>> {
         .id_by_name(name)
         .ok_or_else(|| format!("No matching id found for item '{}'", name))?;
     let mut file = WorldFile::open(world_path, false)?;
-    let basic_info = file.read_header()?;
+    let header = file.read_header()?;
     let chests = file.read_chests()?;
     for chest in &chests[..] {
         for item in &chest.items[..] {
             if item.stack != 0 && item.id == i32::from(id) {
-                let pos = basic_info.tile_to_gps_pos(chest.x, chest.y);
+                let pos = header.tile_to_gps_pos(chest.x, chest.y);
                 println!("Found in chest at {}", pos);
             }
         }
@@ -285,15 +284,15 @@ fn find_item(world_path: &Path, name: &str) -> Result<(), Box<dyn Error>> {
 
 fn fix_npcs(world_path: &Path) -> Result<(), Box<dyn Error>> {
     let mut file = WorldFile::open(world_path, true)?;
-    let basic_info = file.read_header()?;
+    let header = file.read_header()?;
     let mut npcs = file.read_npcs()?;
     let mut fixed_any = false;
     for npc in &mut npcs {
         if npc.x.is_nan() || npc.y.is_nan() {
             // TODO: Need proper conversion from tile to entity coordinates.
             // Try multiplying by 16.
-            npc.x = basic_info.spawn_x as f32 * 16.;
-            npc.y = basic_info.spawn_y as f32 * 16.;
+            npc.x = header.spawn_x as f32 * 16.;
+            npc.y = header.spawn_y as f32 * 16.;
             fixed_any = true;
             println!("{} has NaN position, reset to spawn.", npc.name);
         }
@@ -358,14 +357,14 @@ fn bless_chests(cfg_path: &Path, world_path: &Path) -> Result<(), Box<dyn Error>
     validate_req_for_bless(&reqs)?;
     let mut file = WorldFile::open(world_path, true)?;
     let mut chests = file.read_chests()?;
-    let basic_info = file.read_header()?;
-    let chest_types = file.read_chest_types(&basic_info)?;
+    let header = file.read_header()?;
+    let chest_types = file.read_chest_types()?;
     let mut rng = thread_rng();
     let chest_indexes = 0..chests.len();
     for req in &mut reqs {
         // Decrease stack count for every item that already exists in the world
         for chest in &chests[..] {
-            if is_inaccessible(chest.x, chest.y, &basic_info) {
+            if is_inaccessible(chest.x, chest.y, &header) {
                 continue;
             }
             for item in &chest.items[..] {
@@ -381,7 +380,7 @@ fn bless_chests(cfg_path: &Path, world_path: &Path) -> Result<(), Box<dyn Error>
                 .filter(|&idx| {
                     let chest = &chests[idx];
                     let type_ = chest_types[&(chest.x, chest.y)];
-                    req.only_in.contains(&type_) && !is_inaccessible(chest.x, chest.y, &basic_info)
+                    req.only_in.contains(&type_) && !is_inaccessible(chest.x, chest.y, &header)
                 })
                 .collect();
             matching_indexes.shuffle(&mut rng);
