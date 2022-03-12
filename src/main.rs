@@ -466,8 +466,27 @@ fn analyze_chests(world_path: &Path) -> Result<(), Box<dyn Error>> {
 }
 
 fn corruption_percent(path: &Path) -> Result<(), Box<dyn Error>> {
-    let mut file = WorldFile::open(path, false)?;
-    file.corruption_percent()
+    let mut world_file = WorldFile::open(path, false)?;
+    let mut total = 0;
+    let mut corrupt = 0;
+    let mut crimson = 0;
+    world_file.read_tiles(|id, _, _| {
+        total += 1;
+        match id {
+            23 | 25 | 163 | 112 => corrupt += 1,
+            199 | 200 | 203 | 234 => crimson += 1,
+            _ => {}
+        }
+    })?;
+    println!(
+        "Total: {}, Corrupt: {}, {:.2}%, Crimson: {}, {:.2}%",
+        total,
+        corrupt,
+        f64::from(corrupt) / f64::from(total) * 100.0,
+        crimson,
+        f64::from(crimson) / f64::from(total) * 100.0,
+    );
+    Ok(())
 }
 
 fn count_ores(path: &Path) -> Result<(), Box<dyn Error>> {

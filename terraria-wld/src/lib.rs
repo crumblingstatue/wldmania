@@ -164,30 +164,6 @@ impl WorldFile {
         }
         Ok(())
     }
-    pub fn corruption_percent(&mut self) -> Result<(), Box<dyn Error>> {
-        self.file
-            .seek(SeekFrom::Start(self.base_header.offsets.tiles as u64))?;
-        let mut total = 0;
-        let mut corrupt = 0;
-        let mut crimson = 0;
-        self.read_tiles(|id, _, _| {
-            total += 1;
-            match id {
-                23 | 25 | 163 | 112 => corrupt += 1,
-                199 | 200 | 203 | 234 => crimson += 1,
-                _ => {}
-            }
-        })?;
-        println!(
-            "Total: {}, Corrupt: {}, {:.2}%, Crimson: {}, {:.2}%",
-            total,
-            corrupt,
-            f64::from(corrupt) / f64::from(total) * 100.0,
-            crimson,
-            f64::from(crimson) / f64::from(total) * 100.0,
-        );
-        Ok(())
-    }
     pub fn read_tiles<TC>(&mut self, mut tile_callback: TC) -> Result<(), Box<dyn Error>>
     where
         TC: FnMut(
