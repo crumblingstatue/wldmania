@@ -162,8 +162,7 @@ async fn main() -> anyhow::Result<()> {
                                         field2!("bottom", header.bounds.bottom);
                                     });
                                     ui.end_row();
-                                    field!("width", header.width);
-                                    field!("height", header.height);
+                                    field!("size", format!("{}x{}", header.width, header.height));
                                     field!(
                                         "Game mode",
                                         format!(
