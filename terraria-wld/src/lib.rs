@@ -262,7 +262,7 @@ impl WorldFile {
             let mut y = 0;
             while y < h {
                 let (tile, rle_repeat) =
-                    read_tile(&mut self.file, &self.base_header.tile_frame_important).unwrap();
+                    read_tile(&mut self.file, &self.base_header.tile_frame_important)?;
                 tile_callback(tile, x, y);
                 for i in 0..rle_repeat {
                     tile_callback(tile, x, y + 1 + i);
