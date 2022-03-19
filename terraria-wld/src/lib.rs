@@ -169,11 +169,11 @@ impl WorldFile {
     where
         TC: FnMut(/*tile: */ Tile, /*x: */ u16, /*y: */ u16),
     {
-        let basic_info = self.read_header()?;
+        let header = self.read_header()?;
         self.file
             .seek(SeekFrom::Start(self.base_header.offsets.tiles as u64))?;
-        let w = basic_info.width;
-        let h = basic_info.height;
+        let w = header.width;
+        let h = header.height;
         for x in 0..w {
             let mut y = 0;
             while y < h {
