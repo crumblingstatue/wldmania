@@ -263,7 +263,7 @@ fn load_world(
                 Color::from_rgba(0, 0, 0, 0),
             );
             let mut n_read = 0;
-            wld.read_tiles_2(|tile, x, y, _frame_important| {
+            wld.read_tiles_2(|tile, x, y| {
                 tiles[y as usize * header_inner.width as usize + x as usize] = tile;
                 if let Some(color) = tile_color(&tile) {
                     image_inner.set_pixel(x as u32, y as u32, color);
