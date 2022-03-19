@@ -11,7 +11,7 @@ use egui_macroquad::{
 use macroquad::prelude::*;
 use recently_used_list::RecentlyUsedList;
 use serde::{Deserialize, Serialize};
-use terraria_wld::{Header, WorldFile};
+use terraria_wld::{Header, Tile, WorldFile};
 
 #[derive(Serialize, Deserialize, Default)]
 struct Config {
@@ -49,96 +49,174 @@ fn cfg_path() -> PathBuf {
 async fn main() -> anyhow::Result<()> {
     let mut world = None;
     let mut header = None;
+    let mut map_tex = None;
     let mut cfg = Config::load_or_default()?;
+    let mut show_ui = true;
+    let mut tiles = Vec::new();
     prevent_quit();
-    if cfg.load_most_recent && let Some(most_recent) = cfg.recent_files.most_recent().cloned() && load_world(&most_recent, &mut header, &mut world) {
+    if cfg.load_most_recent && let Some(most_recent) = cfg.recent_files.most_recent().cloned() && load_world(&most_recent, &mut header, &mut world, &mut map_tex, &mut tiles) {
         cfg.recent_files.use_(most_recent);
     }
+    let mut cam_x = 0.0;
+    let mut cam_y = 0.0;
+    let mut scale = 1;
     loop {
-        clear_background(WHITE);
+        clear_background(BLACK);
 
         // Process keys, mouse etc.
 
-        egui_macroquad::ui(|egui_ctx| {
-            TopBottomPanel::top("top_panel").show(egui_ctx, |ui| {
-                ui.menu_button("File", |ui| {
-                    if ui.button("Open").clicked() {
-                        if let Some(path) = rfd::FileDialog::new().pick_file() {
-                            if load_world(&path, &mut header, &mut world) {
-                                cfg.recent_files.use_(path);
+        if let Some(tex) = map_tex {
+            let header = header.as_ref().unwrap();
+            draw_texture_ex(
+                tex,
+                cam_x,
+                cam_y,
+                WHITE,
+                DrawTextureParams {
+                    dest_size: Some(vec2(
+                        header.width as f32 * scale as f32,
+                        header.height as f32 * scale as f32,
+                    )),
+                    source: None,
+                    rotation: 0.0,
+                    flip_x: false,
+                    flip_y: false,
+                    pivot: None,
+                },
+            );
+        }
+
+        let mp = mouse_position();
+        let tile_x = f32::floor(mp.0 / scale as f32 - cam_x / scale as f32);
+        let tile_y = f32::floor(mp.1 / scale as f32 - cam_y / scale as f32);
+
+        if show_ui {
+            egui_macroquad::ui(|egui_ctx| {
+                TopBottomPanel::top("top_panel").show(egui_ctx, |ui| {
+                    ui.menu_button("File", |ui| {
+                        if ui.button("Open").clicked() {
+                            if let Some(path) = rfd::FileDialog::new().pick_file() {
+                                if load_world(
+                                    &path,
+                                    &mut header,
+                                    &mut world,
+                                    &mut map_tex,
+                                    &mut tiles,
+                                ) {
+                                    cfg.recent_files.use_(path);
+                                }
+                            }
+                            ui.close_menu();
+                        }
+                        ui.separator();
+                        let mut used = None;
+                        for recent in cfg.recent_files.iter() {
+                            if ui.button(recent.display().to_string()).clicked() {
+                                load_world(
+                                    recent,
+                                    &mut header,
+                                    &mut world,
+                                    &mut map_tex,
+                                    &mut tiles,
+                                );
+                                used = Some(recent.to_owned());
+                                ui.close_menu();
+                                break;
                             }
                         }
-                        ui.close_menu();
-                    }
-                    ui.separator();
-                    let mut used = None;
-                    for recent in cfg.recent_files.iter() {
-                        if ui.button(recent.display().to_string()).clicked() {
-                            load_world(recent, &mut header, &mut world);
-                            used = Some(recent.to_owned());
-                            ui.close_menu();
-                            break;
+                        if let Some(used) = used {
+                            cfg.recent_files.use_(used);
                         }
-                    }
-                    if let Some(used) = used {
-                        cfg.recent_files.use_(used);
-                    }
-                    ui.separator();
-                    ui.checkbox(&mut cfg.load_most_recent, "Load most recent file at start");
-                });
-            });
-            if let Some(world) = &world {
-                Window::new("World").show(egui_ctx, |ui| {
-                    ScrollArea::vertical().show(ui, |ui| {
-                        ui.heading("Basic");
-                        Grid::new("basic_info_grid").striped(true).show(ui, |ui| {
-                            ui.label("Version");
-                            ui.label(world.base_header.version.to_string());
-                            ui.end_row();
-                            ui.label("Times saved");
-                            ui.label(world.base_header.times_saved.to_string());
-                        });
                         ui.separator();
-                        if let Some(header) = &header {
-                            ui.heading("Header");
-                            Grid::new("header_grid").striped(true).show(ui, |ui| {
-                                field_macro!(ui, field);
-                                field!("Name", header.name);
-                                field!("Seed", header.seed);
-                                field!("Generator version", header.generator_version);
-                                field!("GUID", guid_to_hex(&header.guid));
-                                field!("World id", header.id);
-                                ui.label("Bounds");
-                                Grid::new("bounds_grid").striped(true).show(ui, |ui| {
-                                    field_macro!(ui, field2);
-                                    field2!("left", header.bounds.left);
-                                    field2!("right", header.bounds.right);
-                                    field2!("top", header.bounds.top);
-                                    field2!("bottom", header.bounds.bottom);
-                                });
-                                ui.end_row();
-                                field!("width", header.width);
-                                field!("height", header.height);
-                                field!(
-                                    "Game mode",
-                                    format!(
-                                        "{} ({})",
-                                        game_mode_name(header.game_mode),
-                                        header.game_mode
-                                    )
-                                );
-                            });
-                        }
-                    })
+                        ui.checkbox(&mut cfg.load_most_recent, "Load most recent file at start");
+                    });
                 });
-            }
-        });
+                if let Some(world) = &world {
+                    Window::new("World").show(egui_ctx, |ui| {
+                        ScrollArea::vertical().show(ui, |ui| {
+                            ui.set_height(600.0);
+                            ui.heading("Basic");
+                            Grid::new("basic_info_grid").striped(true).show(ui, |ui| {
+                                ui.label("Version");
+                                ui.label(world.base_header.version.to_string());
+                                ui.end_row();
+                                ui.label("Times saved");
+                                ui.label(world.base_header.times_saved.to_string());
+                            });
+                            ui.separator();
+                            if let Some(header) = &header {
+                                ui.heading("Header");
+                                Grid::new("header_grid").striped(true).show(ui, |ui| {
+                                    field_macro!(ui, field);
+                                    field!("Name", header.name);
+                                    field!("Seed", header.seed);
+                                    field!("Generator version", header.generator_version);
+                                    field!("GUID", guid_to_hex(&header.guid));
+                                    field!("World id", header.id);
+                                    ui.label("Bounds");
+                                    Grid::new("bounds_grid").striped(true).show(ui, |ui| {
+                                        field_macro!(ui, field2);
+                                        field2!("left", header.bounds.left);
+                                        field2!("right", header.bounds.right);
+                                        field2!("top", header.bounds.top);
+                                        field2!("bottom", header.bounds.bottom);
+                                    });
+                                    ui.end_row();
+                                    field!("width", header.width);
+                                    field!("height", header.height);
+                                    field!(
+                                        "Game mode",
+                                        format!(
+                                            "{} ({})",
+                                            game_mode_name(header.game_mode),
+                                            header.game_mode
+                                        )
+                                    );
+                                    if let Some(tile) = tiles.get(
+                                        tile_y as usize * header.width as usize + tile_x as usize,
+                                    ) {
+                                        field!("Pointing at", format!("{}, {}", tile_x, tile_y));
+                                        field!("Tile", format!("{:#?}", tile));
+                                    }
+                                });
+                            }
+                        })
+                    });
+                }
+            });
+            egui_macroquad::draw();
+        }
 
-        // Draw things before egui
+        if is_key_pressed(KeyCode::F12) {
+            show_ui ^= true;
+        }
 
-        egui_macroquad::draw();
+        if is_key_pressed(KeyCode::KpAdd) {
+            scale *= 2;
+            cam_x *= 2.0;
+            cam_y *= 2.0;
+        }
 
-        // Draw things after egui
+        if is_key_pressed(KeyCode::KpSubtract) {
+            scale /= 2;
+            cam_x /= 2.0;
+            cam_y /= 2.0;
+        }
+
+        let speed = 16.0;
+
+        if is_key_down(KeyCode::Left) {
+            cam_x += speed;
+        }
+        if is_key_down(KeyCode::Right) {
+            cam_x -= speed;
+        }
+        if is_key_down(KeyCode::Up) {
+            cam_y += speed;
+        }
+        if is_key_down(KeyCode::Down) {
+            cam_y -= speed;
+        }
 
         if is_quit_requested() {
             cfg.save()?;
@@ -167,10 +245,41 @@ fn guid_to_hex(guid: &[u8; 16]) -> String {
     s
 }
 
-fn load_world(path: &Path, header: &mut Option<Header>, world: &mut Option<WorldFile>) -> bool {
+fn load_world(
+    path: &Path,
+    header: &mut Option<Header>,
+    world: &mut Option<WorldFile>,
+    tex: &mut Option<Texture2D>,
+    tiles: &mut Vec<Tile>,
+) -> bool {
     match terraria_wld::WorldFile::open(path, false) {
         Ok(mut wld) => {
-            *header = Some(wld.read_header().unwrap());
+            let header_inner = wld.read_header().unwrap();
+            *tiles =
+                vec![Tile::default(); header_inner.width as usize * header_inner.height as usize];
+            let mut image_inner = Image::gen_image_color(
+                header_inner.width as u16,
+                header_inner.height as u16,
+                Color::from_rgba(0, 0, 0, 0),
+            );
+            let mut n_read = 0;
+            wld.read_tiles_2(|tile, x, y, _frame_important| {
+                tiles[y as usize * header_inner.width as usize + x as usize] = tile;
+                if let Some(color) = tile_color(&tile) {
+                    image_inner.set_pixel(x as u32, y as u32, color);
+                }
+                n_read += 1;
+            })
+            .unwrap();
+            assert_eq!(
+                n_read,
+                header_inner.width as u32 * header_inner.height as u32,
+                "Didn't read correct number of tiles"
+            );
+            let tex_inner = Texture2D::from_image(&image_inner);
+            tex_inner.set_filter(FilterMode::Nearest);
+            *tex = Some(tex_inner);
+            *header = Some(header_inner);
             *world = Some(wld);
             true
         }
@@ -180,6 +289,112 @@ fn load_world(path: &Path, header: &mut Option<Header>, world: &mut Option<World
                 .show();
             false
         }
+    }
+}
+
+fn tile_color(tile: &Tile) -> Option<Color> {
+    if let Some(id) = tile.front {
+        Some(match id {
+            0 => BROWN,
+            1 => GRAY,
+            2 => GREEN,
+            3 => YELLOW,
+            4 => RED,
+            5 => BROWN,
+            // Iron/copper/etc
+            6 | 7 | 8 | 9 => ORANGE,
+            // Platform
+            19 => BROWN,
+            // Wood
+            30 => BROWN,
+            // Clay
+            40 => Color::from_rgba(154, 73, 40, 255),
+            // Dungeon brick
+            43 | 44 => Color::from_rgba(131, 0, 178, 255),
+            // Chest
+            21 => YELLOW,
+            // Cobweb
+            51 => Color::from_rgba(188, 175, 174, 255),
+            // Vine
+            52 => GREEN,
+            // Sand
+            53 | 112 | 116 | 234 => YELLOW,
+            // Ash
+            57 => DARKGRAY,
+            // Hellstone
+            58 => Color::from_rgba(168, 53, 17, 255),
+            // Mud
+            59 => Color::from_rgba(57, 36, 10, 255),
+            // Jungle grass
+            60 => DARKGREEN,
+            // Jungle vine
+            62 => DARKGREEN,
+            // Glowing mushroom stuff
+            70 | 71 | 72 => Color::from_rgba(56, 230, 255, 255),
+            // Hallowed grass
+            109 => Color::from_rgba(135, 234, 193, 255),
+            // Hallowed vine
+            115 => Color::from_rgba(45, 133, 126, 255),
+            // Pearlstone
+            117 => Color::from_rgba(162, 117, 137, 255),
+            // Wooden beam
+            124 => BROWN,
+            // Snow
+            147 => Color::from_rgba(202, 234, 252, 255),
+            // Ice
+            161 | 162 => Color::from_rgba(151, 165, 220, 255),
+            // Pink ice
+            164 => Color::from_rgba(194, 165, 220, 255),
+            // Living wood
+            191 => BROWN,
+            // Living leaf
+            192 => GREEN,
+            // Crimson grass
+            199 => Color::from_rgba(220, 89, 69, 255),
+            // Crimstone
+            203 => Color::from_rgba(127, 15, 0, 255),
+            // Crimson vines
+            205 => Color::from_rgba(176, 53, 30, 255),
+            // Hive
+            225 => ORANGE,
+            // Temple bricks
+            226 => Color::from_rgba(250, 95, 0, 255),
+            // Marble
+            367 => Color::from_rgba(172, 189, 191, 255),
+            // Granite
+            368 => Color::from_rgba(15, 18, 34, 255),
+            // Living mahogany
+            383 => BROWN,
+            // Living mahogany leaf
+            384 => GREEN,
+            // Sandstone
+            396 => Color::from_rgba(197, 116, 0, 255),
+            // Hardened sand
+            397 => Color::from_rgba(192, 160, 19, 255),
+            // Desert fossil
+            404 => BROWN,
+            _ => MAGENTA,
+        })
+    } else if let Some(liq) = tile.liquid {
+        Some(match liq {
+            terraria_wld::Liquid::Water => BLUE,
+            terraria_wld::Liquid::Lava => RED,
+            terraria_wld::Liquid::Honey => Color::from_rgba(216, 167, 0, 255),
+        })
+    } else {
+        tile.back.map(|back| match back {
+            // Stone
+            1 => DARKGRAY,
+            // Dirt
+            2 => DARKBROWN,
+            // Wood
+            4 | 78 => DARKBROWN,
+            // Dungeon
+            7 | 8 | 9 | 17 | 18 | 19 | 94..=105 => DARKPURPLE,
+            // Crimson
+            83 => Color::from_rgba(59, 8, 8, 255),
+            _ => Color::from_rgba(180, 0, 180, 255),
+        })
     }
 }
 

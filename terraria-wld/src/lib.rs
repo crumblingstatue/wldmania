@@ -244,6 +244,35 @@ impl WorldFile {
         }
         Ok(())
     }
+    /// New, more accurate version
+    pub fn read_tiles_2<TC>(&mut self, mut tile_callback: TC) -> Result<(), Box<dyn Error>>
+    where
+        TC: FnMut(
+            /*tile: */ Tile,
+            /*x: */ u16,
+            /*y: */ u16,
+            /*frame_offset: */ Option<TileFrameOffset>,
+        ),
+    {
+        let basic_info = self.read_header()?;
+        self.file
+            .seek(SeekFrom::Start(self.base_header.offsets.tiles as u64))?;
+        let w = basic_info.width;
+        let h = basic_info.height;
+        for x in 0..w {
+            let mut y = 0;
+            while y < h {
+                let (tile, rle_repeat) =
+                    read_tile(&mut self.file, &self.base_header.tile_frame_important).unwrap();
+                tile_callback(tile, x, y, None);
+                for i in 0..rle_repeat {
+                    tile_callback(tile, x, y + 1 + i, None);
+                }
+                y += rle_repeat + 1;
+            }
+        }
+        Ok(())
+    }
     fn load_chest_types(&mut self) -> Result<HashMap<(u16, u16), ChestType>, Box<dyn Error>> {
         let header = self.read_header()?;
         let mut chest_types = HashMap::new();
@@ -267,6 +296,82 @@ impl WorldFile {
         })?;
         Ok(chest_types)
     }
+}
+
+#[derive(Clone, Copy, Default, Debug)]
+pub struct Tile {
+    pub front: Option<u16>,
+    pub back: Option<u16>,
+    pub liquid: Option<Liquid>,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum Liquid {
+    Water,
+    Lava,
+    Honey,
+}
+
+fn read_tile(file: &mut File, tile_frame_important: &[u8]) -> io::Result<(Tile, u16)> {
+    let flags1 = file.read_u8()?;
+    let flags2;
+    let mut flags3 = 0;
+    if flags1.nth_bit_set(0) {
+        flags2 = file.read_u8()?;
+        if flags2.nth_bit_set(0) {
+            flags3 = file.read_u8()?;
+        }
+    }
+    let mut tile = Tile {
+        front: None,
+        back: None,
+        liquid: None,
+    };
+    tile.front = if flags1.nth_bit_set(1) {
+        let mut type_inner = file.read_u8()? as u16;
+        if flags1.nth_bit_set(5) {
+            type_inner |= (file.read_u8()? as u16) << 8;
+        }
+        if tile_frame_important.nth_bit_set(type_inner as usize) {
+            let _x = file.read_u16::<LE>()?;
+            let _y = file.read_u16::<LE>()?;
+        }
+        if flags3.nth_bit_set(3) {
+            let _color = file.read_u8()?;
+        }
+        Some(type_inner)
+    } else {
+        None
+    };
+    if flags1.nth_bit_set(2) {
+        tile.back = Some(file.read_u8()? as u16);
+        if flags3.nth_bit_set(4) {
+            let _wall_color = file.read_u8()?;
+        }
+    }
+    match flags1 & 0b00011000 {
+        0b00000000 => {}
+        liquid => {
+            let _liquid_amount = file.read_u8()?;
+            tile.liquid = Some(match liquid {
+                0b00001000 => Liquid::Water,
+                0b00010000 => Liquid::Lava,
+                0b00011000 => Liquid::Honey,
+                _ => unreachable!(),
+            })
+        }
+    }
+    if flags3.nth_bit_set(6) {
+        *tile.back.as_mut().unwrap() |= (file.read_u8()? as u16) << 8;
+    }
+    let mut rle = 0;
+    match flags1 >> 6 {
+        0 => {}
+        1 => rle = file.read_u8()? as u16,
+        2 => rle = file.read_u16::<LE>()?,
+        etc => println!("Invalid rle flag ({})", etc),
+    }
+    Ok((tile, rle))
 }
 
 fn read_rect(f: &mut File) -> io::Result<Rect> {
@@ -334,7 +439,7 @@ fn read_base_header(f: &mut File) -> Result<BaseHeader, Box<dyn Error>> {
     }
     let times_saved = f.read_u32::<LE>()?;
     let is_favorite = f.read_u64::<LE>()?;
-    let n_offsets = f.read_i16::<LE>()?;
+    let n_offsets = f.read_u16::<LE>()?;
     if n_offsets != 11 {
         return Err(format!("Unsupported number of offsets: {}", n_offsets).into());
     }
@@ -349,7 +454,7 @@ fn read_base_header(f: &mut File) -> Result<BaseHeader, Box<dyn Error>> {
     let unused_2 = f.read_i32::<LE>()?;
     let unused_3 = f.read_i32::<LE>()?;
     let unknown_4 = f.read_i32::<LE>()?;
-    let n_tile_frame_important = f.read_i16::<LE>()? as usize;
+    let n_tile_frame_important = f.read_u16::<LE>()? as usize;
     let mut tile_frame_important = vec![0; n_tile_frame_important];
     f.read_exact(&mut tile_frame_important)?;
     Ok(BaseHeader {
@@ -377,19 +482,22 @@ const ITEMS_PER_CHEST: i16 = 40;
 const OFFSET_TABLE_OFFSET: u64 = 0x1A;
 
 trait Bits {
-    fn nth_bit_set(&self, index: usize) -> bool;
+    type Index;
+    fn nth_bit_set(self, index: Self::Index) -> bool;
 }
 
 impl Bits for u8 {
-    fn nth_bit_set(&self, index: usize) -> bool {
-        *self & (1 << index as u8) != 0
+    type Index = u8;
+    fn nth_bit_set(self, index: u8) -> bool {
+        self & (1 << index) != 0
     }
 }
 
-impl Bits for [u8] {
-    fn nth_bit_set(&self, index: usize) -> bool {
+impl<'a> Bits for &'a [u8] {
+    type Index = usize;
+    fn nth_bit_set(self, index: usize) -> bool {
         let byte_idx = index / 8;
-        let bit_idx = index % 8;
+        let bit_idx = (index % 8) as u8;
         self[byte_idx].nth_bit_set(bit_idx)
     }
 }
@@ -478,6 +586,7 @@ impl ChestType {
 /// tile frame is important.
 /// Which tile frames are important are stored in an array called tile_frame_important in the .wld
 /// file, which are read along with other metadata.
+#[derive(Clone, Copy)]
 pub struct TileFrameOffset {
     pub x: i16,
     pub y: i16,
