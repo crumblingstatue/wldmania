@@ -164,94 +164,10 @@ impl WorldFile {
         }
         Ok(())
     }
+    /// New, more accurate version
     pub fn read_tiles<TC>(&mut self, mut tile_callback: TC) -> Result<(), Box<dyn Error>>
     where
-        TC: FnMut(
-            /*id: */ u16,
-            /*i:*/ usize,
-            /*frame_offset: */ Option<TileFrameOffset>,
-        ),
-    {
-        let basic_info = self.read_header()?;
-        let mut i = 0;
-        let len: usize = basic_info.width as usize * basic_info.height as usize;
-        let f = &mut self.file;
-        while i < len {
-            let flags1 = f.read_u8()?;
-            let flags2_present = flags1.nth_bit_set(0);
-            let not_air = flags1.nth_bit_set(1);
-            let has_wall = flags1.nth_bit_set(2);
-            let liquid_type_lo = flags1.nth_bit_set(3);
-            let liquid_type_hi = flags1.nth_bit_set(4);
-            let long_type_id = flags1.nth_bit_set(5);
-            let rle_on = flags1.nth_bit_set(6);
-            let rle_on_long = flags1.nth_bit_set(7);
-            let flags3_present = if flags2_present {
-                let flags2 = f.read_u8()?;
-                flags2.nth_bit_set(0)
-            } else {
-                false
-            };
-            let (tile_painted, wall_painted);
-            if flags3_present {
-                let flags3 = f.read_u8()?;
-                tile_painted = flags3.nth_bit_set(3);
-                wall_painted = flags3.nth_bit_set(4);
-            } else {
-                tile_painted = false;
-                wall_painted = false;
-            }
-            if not_air {
-                let tile_id = if long_type_id {
-                    f.read_u16::<LE>()?
-                } else {
-                    u16::from(f.read_u8()?)
-                };
-                let mut frame_important = None;
-                if self
-                    .base_header
-                    .tile_frame_important
-                    .nth_bit_set(tile_id as usize)
-                {
-                    frame_important = Some(TileFrameOffset {
-                        x: f.read_u16::<LE>()?,
-                        y: f.read_u16::<LE>()?,
-                    });
-                }
-                tile_callback(tile_id, i, frame_important);
-            }
-            if tile_painted {
-                let _paint = f.read_u8()?;
-            }
-            if has_wall {
-                let _wall = f.read_u8()?;
-                if wall_painted {
-                    let _wall_paint = f.read_u8()?;
-                }
-            }
-            if liquid_type_lo || liquid_type_hi {
-                let _liquid_volume = f.read_u8()?;
-            }
-            if rle_on || rle_on_long {
-                let rle: u16 = if rle_on_long {
-                    f.read_u16::<LE>()?
-                } else {
-                    u16::from(f.read_u8()?)
-                };
-                i += rle as usize;
-            }
-            i += 1;
-        }
-        Ok(())
-    }
-    /// New, more accurate version
-    pub fn read_tiles_2<TC>(&mut self, mut tile_callback: TC) -> Result<(), Box<dyn Error>>
-    where
-        TC: FnMut(
-            /*tile: */ Tile,
-            /*x: */ u16,
-            /*y: */ u16,
-        ),
+        TC: FnMut(/*tile: */ Tile, /*x: */ u16, /*y: */ u16),
     {
         let basic_info = self.read_header()?;
         self.file
@@ -273,24 +189,19 @@ impl WorldFile {
         Ok(())
     }
     fn load_chest_types(&mut self) -> Result<HashMap<(u16, u16), ChestType>, Box<dyn Error>> {
-        let header = self.read_header()?;
         let mut chest_types = HashMap::new();
-        self.read_tiles(|tile_id, i, frame| {
-            if tile_id == 21 {
-                let tfo = frame.unwrap();
-                let x = (i / header.width as usize) as u16;
-                let y = (i % header.height as usize) as u16;
+        self.read_tiles(|tile, x, y| {
+            if tile.front == Some(21) {
+                let tfo = tile.frame.unwrap();
                 if tfo.y == 0 {
                     let type_ = ChestType::from_frame_x(tfo.x);
                     chest_types.insert((x, y), type_);
                 }
-            } else if tile_id == 88
+            } else if tile.front == Some(88)
             /* dresser */
             {
-                let tfi = frame.unwrap();
-                let x = (i / header.height as usize) as u16;
-                let y = (i % header.height as usize) as u16;
-                chest_types.insert((x, y), ChestType::UnknownDresser(tfi.x));
+                let tfo = tile.frame.unwrap();
+                chest_types.insert((x, y), ChestType::UnknownDresser(tfo.x));
             }
         })?;
         Ok(chest_types)
@@ -302,7 +213,7 @@ pub struct Tile {
     pub front: Option<u16>,
     pub back: Option<u16>,
     pub liquid: Option<Liquid>,
-    pub tile_frame: Option<TileFrameOffset>,
+    pub frame: Option<TileFrameOffset>,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -375,7 +286,7 @@ fn read_tile(file: &mut File, tile_frame_important: &[u8]) -> io::Result<(Tile, 
             front,
             back,
             liquid,
-            tile_frame,
+            frame: tile_frame,
         },
         rle,
     ))

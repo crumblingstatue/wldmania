@@ -470,11 +470,11 @@ fn corruption_percent(path: &Path) -> Result<(), Box<dyn Error>> {
     let mut total = 0;
     let mut corrupt = 0;
     let mut crimson = 0;
-    world_file.read_tiles(|id, _, _| {
+    world_file.read_tiles(|tile, _, _| {
         total += 1;
-        match id {
-            23 | 25 | 163 | 112 => corrupt += 1,
-            199 | 200 | 203 | 234 => crimson += 1,
+        match tile.front {
+            Some(23 | 25 | 163 | 112) => corrupt += 1,
+            Some(199 | 200 | 203 | 234) => crimson += 1,
             _ => {}
         }
     })?;
@@ -506,25 +506,25 @@ fn count_ores(path: &Path) -> Result<(), Box<dyn Error>> {
     let mut amethyst = 0;
     let mut diamond = 0;
     let mut amber = 0;
-    world_file.read_tiles(|id, _i, tfo| match id {
-        7 => copper += 1,
-        166 => tin += 1,
-        6 => iron += 1,
-        167 => lead += 1,
-        9 => silver += 1,
-        168 => tungsten += 1,
-        8 => gold += 1,
-        169 => platinum += 1,
-        63 => sapphire += 1,
-        64 => ruby += 1,
-        65 => emerald += 1,
-        66 => topaz += 1,
-        67 => amethyst += 1,
-        68 => diamond += 1,
-        566 => amber += 1,
-        178 => {
-            let tfi = tfo.unwrap();
-            match tfi.x / 18 {
+    world_file.read_tiles(|tile, _, _| match tile.front {
+        Some(7) => copper += 1,
+        Some(166) => tin += 1,
+        Some(6) => iron += 1,
+        Some(167) => lead += 1,
+        Some(9) => silver += 1,
+        Some(168) => tungsten += 1,
+        Some(8) => gold += 1,
+        Some(169) => platinum += 1,
+        Some(63) => sapphire += 1,
+        Some(64) => ruby += 1,
+        Some(65) => emerald += 1,
+        Some(66) => topaz += 1,
+        Some(67) => amethyst += 1,
+        Some(68) => diamond += 1,
+        Some(566) => amber += 1,
+        Some(178) => {
+            let tfo = tile.frame.unwrap();
+            match tfo.x / 18 {
                 0 => amethyst += 1,
                 1 => topaz += 1,
                 2 => sapphire += 1,
