@@ -208,6 +208,19 @@ async fn main() -> anyhow::Result<()> {
             cam_y -= speed;
         }
 
+        if let Some(header) = &header {
+            cam_x = clamp(
+                cam_x,
+                -(header.width as f32 * scale as f32) + screen_width(),
+                0.,
+            );
+            cam_y = clamp(
+                cam_y,
+                -(header.height as f32 * scale as f32) + screen_height(),
+                0.,
+            );
+        }
+
         if is_quit_requested() {
             cfg.save()?;
             return Ok(());
