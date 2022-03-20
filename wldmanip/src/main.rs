@@ -54,7 +54,7 @@ async fn main() -> anyhow::Result<()> {
     let mut show_ui = true;
     let mut tiles = Vec::new();
     prevent_quit();
-    if cfg.load_most_recent && let Some(most_recent) = cfg.recent_files.most_recent().cloned() && load_world(&most_recent, &mut header, &mut world, &mut map_tex, &mut tiles) {
+    if cfg.load_most_recent && let Some(most_recent) = cfg.recent_files.most_recent().cloned() && load_world(&most_recent, &mut header, &mut world) {
         cfg.recent_files.use_(most_recent);
     }
     let mut cam_x = 0.0;
@@ -96,13 +96,7 @@ async fn main() -> anyhow::Result<()> {
                     ui.menu_button("File", |ui| {
                         if ui.button("Open").clicked() {
                             if let Some(path) = rfd::FileDialog::new().pick_file() {
-                                if load_world(
-                                    &path,
-                                    &mut header,
-                                    &mut world,
-                                    &mut map_tex,
-                                    &mut tiles,
-                                ) {
+                                if load_world(&path, &mut header, &mut world) {
                                     cfg.recent_files.use_(path);
                                 }
                             }
@@ -112,13 +106,7 @@ async fn main() -> anyhow::Result<()> {
                         let mut used = None;
                         for recent in cfg.recent_files.iter() {
                             if ui.button(recent.display().to_string()).clicked() {
-                                load_world(
-                                    recent,
-                                    &mut header,
-                                    &mut world,
-                                    &mut map_tex,
-                                    &mut tiles,
-                                );
+                                load_world(recent, &mut header, &mut world);
                                 used = Some(recent.to_owned());
                                 ui.close_menu();
                                 break;
@@ -131,7 +119,7 @@ async fn main() -> anyhow::Result<()> {
                         ui.checkbox(&mut cfg.load_most_recent, "Load most recent file at start");
                     });
                 });
-                if let Some(world) = &world {
+                if let Some(world) = &mut world {
                     Window::new("World").show(egui_ctx, |ui| {
                         ScrollArea::vertical().show(ui, |ui| {
                             ui.set_height(600.0);
@@ -146,6 +134,9 @@ async fn main() -> anyhow::Result<()> {
                             ui.separator();
                             if let Some(header) = &header {
                                 ui.heading("Header");
+                                if ui.button("Load tiles").clicked() {
+                                    load_tiles(world, header, &mut tiles, &mut map_tex);
+                                }
                                 Grid::new("header_grid").striped(true).show(ui, |ui| {
                                     field_macro!(ui, field);
                                     field!("Name", header.name);
@@ -244,40 +235,42 @@ fn guid_to_hex(guid: &[u8; 16]) -> String {
     s
 }
 
-fn load_world(
-    path: &Path,
-    header: &mut Option<Header>,
-    world: &mut Option<WorldFile>,
-    tex: &mut Option<Texture2D>,
+fn load_tiles(
+    world: &mut WorldFile,
+    header: &Header,
     tiles: &mut Vec<Tile>,
-) -> bool {
+    tex: &mut Option<Texture2D>,
+) {
+    *tiles = vec![Tile::default(); header.width as usize * header.height as usize];
+    let mut image_inner = Image::gen_image_color(
+        header.width as u16,
+        header.height as u16,
+        Color::from_rgba(0, 0, 0, 0),
+    );
+    let mut n_read = 0;
+    world
+        .read_tiles(|tile, x, y| {
+            tiles[y as usize * header.width as usize + x as usize] = tile;
+            if let Some(color) = tile_color(&tile) {
+                image_inner.set_pixel(x as u32, y as u32, color);
+            }
+            n_read += 1;
+        })
+        .unwrap();
+    assert_eq!(
+        n_read,
+        header.width as u32 * header.height as u32,
+        "Didn't read correct number of tiles"
+    );
+    let tex_inner = Texture2D::from_image(&image_inner);
+    tex_inner.set_filter(FilterMode::Nearest);
+    *tex = Some(tex_inner);
+}
+
+fn load_world(path: &Path, header: &mut Option<Header>, world: &mut Option<WorldFile>) -> bool {
     match terraria_wld::WorldFile::open(path, false) {
         Ok(mut wld) => {
             let header_inner = wld.read_header().unwrap();
-            *tiles =
-                vec![Tile::default(); header_inner.width as usize * header_inner.height as usize];
-            let mut image_inner = Image::gen_image_color(
-                header_inner.width as u16,
-                header_inner.height as u16,
-                Color::from_rgba(0, 0, 0, 0),
-            );
-            let mut n_read = 0;
-            wld.read_tiles(|tile, x, y| {
-                tiles[y as usize * header_inner.width as usize + x as usize] = tile;
-                if let Some(color) = tile_color(&tile) {
-                    image_inner.set_pixel(x as u32, y as u32, color);
-                }
-                n_read += 1;
-            })
-            .unwrap();
-            assert_eq!(
-                n_read,
-                header_inner.width as u32 * header_inner.height as u32,
-                "Didn't read correct number of tiles"
-            );
-            let tex_inner = Texture2D::from_image(&image_inner);
-            tex_inner.set_filter(FilterMode::Nearest);
-            *tex = Some(tex_inner);
             *header = Some(header_inner);
             *world = Some(wld);
             true
