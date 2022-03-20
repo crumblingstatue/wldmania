@@ -187,7 +187,7 @@ async fn main() -> anyhow::Result<()> {
             cam_y *= 2.0;
         }
 
-        if is_key_pressed(KeyCode::KpSubtract) {
+        if is_key_pressed(KeyCode::KpSubtract) && scale > 1 {
             scale /= 2;
             cam_x /= 2.0;
             cam_y /= 2.0;
