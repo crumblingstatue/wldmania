@@ -139,7 +139,9 @@ async fn main() -> anyhow::Result<()> {
                             if let Some(header) = &header && let Some(file) = &mut file {
                                 ui.heading("Header");
                                 if ui.button("Load tiles").clicked() {
-                                    load_tiles(file, base_header, header, &mut tiles, &mut map_tex);
+                                    let (tiles_inner, map_tex_inner) = load_tiles(file, base_header, header);
+                                    tiles = tiles_inner;
+                                    map_tex = Some(map_tex_inner);
                                 }
                                 Grid::new("header_grid").striped(true).show(ui, |ui| {
                                     field_macro!(ui, field);
@@ -252,15 +254,9 @@ fn guid_to_hex(guid: &[u8; 16]) -> String {
     s
 }
 
-fn load_tiles(
-    file: &File,
-    base_header: &BaseHeader,
-    header: &Header,
-    tiles: &mut Vec<Tile>,
-    tex: &mut Option<Texture2D>,
-) {
-    *tiles = vec![Tile::default(); header.width as usize * header.height as usize];
-    let mut image_inner = Image::gen_image_color(
+fn load_tiles(file: &File, base_header: &BaseHeader, header: &Header) -> (Vec<Tile>, Texture2D) {
+    let mut tiles = vec![Tile::default(); header.width as usize * header.height as usize];
+    let mut image = Image::gen_image_color(
         header.width as u16,
         header.height as u16,
         Color::from_rgba(0, 0, 0, 0),
@@ -269,7 +265,7 @@ fn load_tiles(
     terraria_wld::read_tiles(file, base_header, |tile, x, y| {
         tiles[y as usize * header.width as usize + x as usize] = tile;
         if let Some(color) = tile_color(&tile) {
-            image_inner.set_pixel(x as u32, y as u32, color);
+            image.set_pixel(x as u32, y as u32, color);
         }
         n_read += 1;
     })
@@ -279,9 +275,9 @@ fn load_tiles(
         header.width as u32 * header.height as u32,
         "Didn't read correct number of tiles"
     );
-    let tex_inner = Texture2D::from_image(&image_inner);
-    tex_inner.set_filter(FilterMode::Nearest);
-    *tex = Some(tex_inner);
+    let tex = Texture2D::from_image(&image);
+    tex.set_filter(FilterMode::Nearest);
+    (tiles, tex)
 }
 
 fn load_world(
