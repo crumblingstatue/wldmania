@@ -253,7 +253,7 @@ fn guid_to_hex(guid: &[u8; 16]) -> String {
 }
 
 fn load_tiles(
-    file: &mut File,
+    file: &File,
     base_header: &BaseHeader,
     header: &Header,
     tiles: &mut Vec<Tile>,
@@ -291,9 +291,9 @@ fn load_world(
     file: &mut Option<File>,
 ) -> bool {
     match terraria_wld::open(path, false) {
-        Ok((mut file_inner, base_header_inner)) => {
+        Ok((file_inner, base_header_inner)) => {
             let header_inner =
-                terraria_wld::read_header(&mut file_inner, base_header_inner.offsets.header as u64)
+                terraria_wld::read_header(&file_inner, base_header_inner.offsets.header as u64)
                     .unwrap();
             *file = Some(file_inner);
             *header = Some(header_inner);
