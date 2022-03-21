@@ -7,6 +7,7 @@ use std::io::prelude::*;
 use std::io::{self, SeekFrom};
 use std::path::Path;
 
+#[derive(Clone)]
 pub struct Header {
     pub id: i32,
     pub bounds: Rect,
@@ -22,7 +23,7 @@ pub struct Header {
     pub game_mode: i32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Rect {
     pub left: i32,
     pub right: i32,
@@ -297,7 +298,7 @@ fn read_rect(mut f: &File) -> io::Result<Rect> {
 }
 
 /// Contains the offsets of different sections, and some other base information.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BaseHeader {
     pub version: i32,
     pub offsets: Offsets,
@@ -307,7 +308,7 @@ pub struct BaseHeader {
 }
 
 /// The offsets of different sections
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Offsets {
     pub header: i32,
     pub tiles: i32,

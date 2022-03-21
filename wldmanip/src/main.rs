@@ -7,7 +7,7 @@ use std::{
 
 use directories::ProjectDirs;
 use egui_macroquad::{
-    egui::{Grid, ScrollArea, TopBottomPanel, Window},
+    egui::{Grid, ScrollArea, Spinner, TopBottomPanel, Window},
     macroquad,
 };
 
@@ -64,6 +64,8 @@ async fn main() -> anyhow::Result<()> {
     let mut cam_x = 0.0;
     let mut cam_y = 0.0;
     let mut scale = 1;
+    let (sender, receiver) = std::sync::mpsc::channel();
+    let mut loading_tiles = false;
     loop {
         clear_background(BLACK);
 
@@ -88,6 +90,12 @@ async fn main() -> anyhow::Result<()> {
                     pivot: None,
                 },
             );
+        } else if let Ok((tiles_, img)) = receiver.try_recv() {
+            tiles = tiles_;
+            let tex = Texture2D::from_image(&img);
+            tex.set_filter(FilterMode::Nearest);
+            map_tex = Some(tex);
+            loading_tiles = false;
         }
 
         let mp = mouse_position();
@@ -138,11 +146,24 @@ async fn main() -> anyhow::Result<()> {
                             ui.separator();
                             if let Some(header) = &header && let Some(file) = &mut file {
                                 ui.heading("Header");
+                                if !loading_tiles {
                                 if ui.button("Load tiles").clicked() {
-                                    let (tiles_inner, map_tex_inner) = load_tiles(file, base_header, header);
-                                    tiles = tiles_inner;
-                                    map_tex = Some(map_tex_inner);
+                                    let base_header = base_header.clone();
+                                    let header = header.clone();
+                                    let file = file.try_clone().unwrap();
+                                    let sender = sender.clone();
+                                    std::thread::spawn(move || {
+                                        let ret_val = load_tiles(&file, &base_header, &header);
+                                        sender.send(ret_val).unwrap();
+                                    });
+                                    loading_tiles = true;
                                 }
+                            } else {
+                                ui.horizontal(|ui| {
+                                    ui.label("Loading tiles...");
+                                    ui.add(Spinner::new());
+                                });
+                            }
                                 Grid::new("header_grid").striped(true).show(ui, |ui| {
                                     field_macro!(ui, field);
                                     field!("Name", header.name);
@@ -254,7 +275,7 @@ fn guid_to_hex(guid: &[u8; 16]) -> String {
     s
 }
 
-fn load_tiles(file: &File, base_header: &BaseHeader, header: &Header) -> (Vec<Tile>, Texture2D) {
+fn load_tiles(file: &File, base_header: &BaseHeader, header: &Header) -> (Vec<Tile>, Image) {
     let mut tiles = vec![Tile::default(); header.width as usize * header.height as usize];
     let mut image = Image::gen_image_color(
         header.width as u16,
@@ -275,9 +296,7 @@ fn load_tiles(file: &File, base_header: &BaseHeader, header: &Header) -> (Vec<Ti
         header.width as u32 * header.height as u32,
         "Didn't read correct number of tiles"
     );
-    let tex = Texture2D::from_image(&image);
-    tex.set_filter(FilterMode::Nearest);
-    (tiles, tex)
+    (tiles, image)
 }
 
 fn load_world(
