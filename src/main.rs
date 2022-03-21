@@ -6,7 +6,6 @@ use std::error::Error;
 use std::fs::File;
 use std::io::{self, prelude::*};
 use std::path::{Path, PathBuf};
-use terraria_wld::WorldFile;
 
 use crate::item_id_pairs::ITEM_ID_PAIRS;
 
@@ -143,9 +142,9 @@ fn main() {
 }
 
 fn chest_info(wld_path: &Path, x: u16, y: u16) -> Result<(), Box<dyn Error>> {
-    let mut file = WorldFile::open(wld_path, false)?;
-    let chests = file.read_chests()?;
-    let chest_types = file.read_chest_types()?;
+    let (mut file, base_header) = terraria_wld::open(wld_path, false)?;
+    let chests = terraria_wld::read_chests(&mut file, base_header.offsets.chests as u64)?;
+    let chest_types = terraria_wld::read_chest_types(&mut file, &base_header)?;
     let ids = item_ids();
     for chest in &chests {
         if chest.x == x && chest.y == y {
@@ -216,9 +215,9 @@ where
     for world_path in world_paths {
         let world_path = world_path.as_ref();
         eprintln!("{}:", world_path.display());
-        let mut file = WorldFile::open(world_path, false)?;
-        let header = file.read_header()?;
-        let chests = file.read_chests()?;
+        let (mut file, base_header) = terraria_wld::open(world_path, false)?;
+        let header = terraria_wld::read_header(&mut file, base_header.offsets.header as u64)?;
+        let chests = terraria_wld::read_chests(&mut file, base_header.offsets.chests as u64)?;
         for chest in &chests[..] {
             if is_inaccessible(chest.x, chest.y, &header) {
                 eprintln!(
@@ -268,9 +267,9 @@ fn find_item(world_path: &Path, name: &str) -> Result<(), Box<dyn Error>> {
     let id = ids
         .id_by_name(name)
         .ok_or_else(|| format!("No matching id found for item '{}'", name))?;
-    let mut file = WorldFile::open(world_path, false)?;
-    let header = file.read_header()?;
-    let chests = file.read_chests()?;
+    let (mut file, base_header) = terraria_wld::open(world_path, false)?;
+    let header = terraria_wld::read_header(&mut file, base_header.offsets.header as u64)?;
+    let chests = terraria_wld::read_chests(&mut file, base_header.offsets.chests as u64)?;
     for chest in &chests[..] {
         for item in &chest.items[..] {
             if item.stack != 0 && item.id == i32::from(id) {
@@ -283,9 +282,9 @@ fn find_item(world_path: &Path, name: &str) -> Result<(), Box<dyn Error>> {
 }
 
 fn fix_npcs(world_path: &Path) -> Result<(), Box<dyn Error>> {
-    let mut file = WorldFile::open(world_path, true)?;
-    let header = file.read_header()?;
-    let mut npcs = file.read_npcs()?;
+    let (mut file, base_header) = terraria_wld::open(world_path, true)?;
+    let header = terraria_wld::read_header(&mut file, base_header.offsets.header as u64)?;
+    let mut npcs = terraria_wld::read_npcs(&mut file, base_header.offsets.npcs as u64)?;
     let mut fixed_any = false;
     for npc in &mut npcs {
         if npc.x.is_nan() || npc.y.is_nan() {
@@ -298,7 +297,7 @@ fn fix_npcs(world_path: &Path) -> Result<(), Box<dyn Error>> {
         }
     }
     if fixed_any {
-        file.write_npcs(&npcs)?;
+        terraria_wld::write_npcs(&mut file, base_header.offsets.npcs as u64, &npcs)?;
     } else {
         println!("No NPCs needed fixing.");
     }
@@ -355,10 +354,10 @@ fn bless_chests(cfg_path: &Path, world_path: &Path) -> Result<(), Box<dyn Error>
     }
     let mut reqs = req_file::from_path::<Tracker>(cfg_path, &item_ids)?;
     validate_req_for_bless(&reqs)?;
-    let mut file = WorldFile::open(world_path, true)?;
-    let mut chests = file.read_chests()?;
-    let header = file.read_header()?;
-    let chest_types = file.read_chest_types()?;
+    let (mut file, mut base_header) = terraria_wld::open(world_path, true)?;
+    let mut chests = terraria_wld::read_chests(&mut file, base_header.offsets.chests as u64)?;
+    let header = terraria_wld::read_header(&mut file, base_header.offsets.header as u64)?;
+    let chest_types = terraria_wld::read_chest_types(&mut file, &base_header)?;
     let mut rng = thread_rng();
     let chest_indexes = 0..chests.len();
     for req in &mut reqs {
@@ -407,13 +406,13 @@ fn bless_chests(cfg_path: &Path, world_path: &Path) -> Result<(), Box<dyn Error>
             );
         }
     }
-    file.write_chests(&chests)?;
+    terraria_wld::write_chests(&mut file, &mut base_header, &chests)?;
     Ok(())
 }
 
 fn analyze_chests(world_path: &Path) -> Result<(), Box<dyn Error>> {
-    let mut file = WorldFile::open(world_path, false)?;
-    let chests = file.read_chests()?;
+    let (mut file, base_header) = terraria_wld::open(world_path, false)?;
+    let chests = terraria_wld::read_chests(&mut file, base_header.offsets.chests as u64)?;
     #[derive(Debug)]
     struct ItemStat {
         stack_count: u32,
@@ -466,11 +465,11 @@ fn analyze_chests(world_path: &Path) -> Result<(), Box<dyn Error>> {
 }
 
 fn corruption_percent(path: &Path) -> Result<(), Box<dyn Error>> {
-    let mut world_file = WorldFile::open(path, false)?;
+    let (mut world_file, base_header) = terraria_wld::open(path, false)?;
     let mut total = 0;
     let mut corrupt = 0;
     let mut crimson = 0;
-    world_file.read_tiles(|tile, _, _| {
+    terraria_wld::read_tiles(&mut world_file, &base_header, |tile, _, _| {
         total += 1;
         match tile.front {
             Some(23 | 25 | 163 | 112) => corrupt += 1,
@@ -490,7 +489,7 @@ fn corruption_percent(path: &Path) -> Result<(), Box<dyn Error>> {
 }
 
 fn count_ores(path: &Path) -> Result<(), Box<dyn Error>> {
-    let mut world_file = WorldFile::open(path, false)?;
+    let (mut world_file, base_header) = terraria_wld::open(path, false)?;
     let mut copper = 0;
     let mut tin = 0;
     let mut iron = 0;
@@ -506,36 +505,38 @@ fn count_ores(path: &Path) -> Result<(), Box<dyn Error>> {
     let mut amethyst = 0;
     let mut diamond = 0;
     let mut amber = 0;
-    world_file.read_tiles(|tile, _, _| match tile.front {
-        Some(7) => copper += 1,
-        Some(166) => tin += 1,
-        Some(6) => iron += 1,
-        Some(167) => lead += 1,
-        Some(9) => silver += 1,
-        Some(168) => tungsten += 1,
-        Some(8) => gold += 1,
-        Some(169) => platinum += 1,
-        Some(63) => sapphire += 1,
-        Some(64) => ruby += 1,
-        Some(65) => emerald += 1,
-        Some(66) => topaz += 1,
-        Some(67) => amethyst += 1,
-        Some(68) => diamond += 1,
-        Some(566) => amber += 1,
-        Some(178) => {
-            let tfo = tile.frame.unwrap();
-            match tfo.x / 18 {
-                0 => amethyst += 1,
-                1 => topaz += 1,
-                2 => sapphire += 1,
-                3 => emerald += 1,
-                4 => ruby += 1,
-                5 => diamond += 1,
-                6 => amber += 1,
-                _ => panic!("invalid/unknown gem tile frame x"),
+    terraria_wld::read_tiles(&mut world_file, &base_header, |tile, _, _| {
+        match tile.front {
+            Some(7) => copper += 1,
+            Some(166) => tin += 1,
+            Some(6) => iron += 1,
+            Some(167) => lead += 1,
+            Some(9) => silver += 1,
+            Some(168) => tungsten += 1,
+            Some(8) => gold += 1,
+            Some(169) => platinum += 1,
+            Some(63) => sapphire += 1,
+            Some(64) => ruby += 1,
+            Some(65) => emerald += 1,
+            Some(66) => topaz += 1,
+            Some(67) => amethyst += 1,
+            Some(68) => diamond += 1,
+            Some(566) => amber += 1,
+            Some(178) => {
+                let tfo = tile.frame.unwrap();
+                match tfo.x / 18 {
+                    0 => amethyst += 1,
+                    1 => topaz += 1,
+                    2 => sapphire += 1,
+                    3 => emerald += 1,
+                    4 => ruby += 1,
+                    5 => diamond += 1,
+                    6 => amber += 1,
+                    _ => panic!("invalid/unknown gem tile frame x"),
+                }
             }
+            _ => {}
         }
-        _ => {}
     })?;
     if copper > 0 {
         println!("copper: {}", copper);

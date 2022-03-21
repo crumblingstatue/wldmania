@@ -1,6 +1,9 @@
 #![feature(let_chains, decl_macro)]
 
-use std::path::{Path, PathBuf};
+use std::{
+    fs::File,
+    path::{Path, PathBuf},
+};
 
 use directories::ProjectDirs;
 use egui_macroquad::{
@@ -11,7 +14,7 @@ use egui_macroquad::{
 use macroquad::prelude::*;
 use recently_used_list::RecentlyUsedList;
 use serde::{Deserialize, Serialize};
-use terraria_wld::{Header, Tile, WorldFile};
+use terraria_wld::{BaseHeader, Header, Tile};
 
 #[derive(Serialize, Deserialize, Default)]
 struct Config {
@@ -47,14 +50,15 @@ fn cfg_path() -> PathBuf {
 
 #[macroquad::main("egui with macroquad")]
 async fn main() -> anyhow::Result<()> {
-    let mut world = None;
+    let mut file = None;
+    let mut base_header = None;
     let mut header = None;
     let mut map_tex = None;
     let mut cfg = Config::load_or_default()?;
     let mut show_ui = true;
     let mut tiles = Vec::new();
     prevent_quit();
-    if cfg.load_most_recent && let Some(most_recent) = cfg.recent_files.most_recent().cloned() && load_world(&most_recent, &mut header, &mut world) {
+    if cfg.load_most_recent && let Some(most_recent) = cfg.recent_files.most_recent().cloned() && load_world(&most_recent, &mut header, &mut base_header, &mut file) {
         cfg.recent_files.use_(most_recent);
     }
     let mut cam_x = 0.0;
@@ -96,7 +100,7 @@ async fn main() -> anyhow::Result<()> {
                     ui.menu_button("File", |ui| {
                         if ui.button("Open").clicked() {
                             if let Some(path) = rfd::FileDialog::new().pick_file() {
-                                if load_world(&path, &mut header, &mut world) {
+                                if load_world(&path, &mut header, &mut base_header, &mut file) {
                                     cfg.recent_files.use_(path);
                                 }
                             }
@@ -106,7 +110,7 @@ async fn main() -> anyhow::Result<()> {
                         let mut used = None;
                         for recent in cfg.recent_files.iter() {
                             if ui.button(recent.display().to_string()).clicked() {
-                                load_world(recent, &mut header, &mut world);
+                                load_world(recent, &mut header, &mut base_header, &mut file);
                                 used = Some(recent.to_owned());
                                 ui.close_menu();
                                 break;
@@ -119,23 +123,23 @@ async fn main() -> anyhow::Result<()> {
                         ui.checkbox(&mut cfg.load_most_recent, "Load most recent file at start");
                     });
                 });
-                if let Some(world) = &mut world {
+                if let Some(base_header) = &mut base_header {
                     Window::new("World").show(egui_ctx, |ui| {
                         ScrollArea::vertical().show(ui, |ui| {
                             ui.set_height(600.0);
                             ui.heading("Basic");
                             Grid::new("basic_info_grid").striped(true).show(ui, |ui| {
                                 ui.label("Version");
-                                ui.label(world.base_header.version.to_string());
+                                ui.label(base_header.version.to_string());
                                 ui.end_row();
                                 ui.label("Times saved");
-                                ui.label(world.base_header.times_saved.to_string());
+                                ui.label(base_header.times_saved.to_string());
                             });
                             ui.separator();
-                            if let Some(header) = &header {
+                            if let Some(header) = &header && let Some(file) = &mut file {
                                 ui.heading("Header");
                                 if ui.button("Load tiles").clicked() {
-                                    load_tiles(world, header, &mut tiles, &mut map_tex);
+                                    load_tiles(file, base_header, header, &mut tiles, &mut map_tex);
                                 }
                                 Grid::new("header_grid").striped(true).show(ui, |ui| {
                                     field_macro!(ui, field);
@@ -249,7 +253,8 @@ fn guid_to_hex(guid: &[u8; 16]) -> String {
 }
 
 fn load_tiles(
-    world: &mut WorldFile,
+    file: &mut File,
+    base_header: &BaseHeader,
     header: &Header,
     tiles: &mut Vec<Tile>,
     tex: &mut Option<Texture2D>,
@@ -261,15 +266,14 @@ fn load_tiles(
         Color::from_rgba(0, 0, 0, 0),
     );
     let mut n_read = 0;
-    world
-        .read_tiles(|tile, x, y| {
-            tiles[y as usize * header.width as usize + x as usize] = tile;
-            if let Some(color) = tile_color(&tile) {
-                image_inner.set_pixel(x as u32, y as u32, color);
-            }
-            n_read += 1;
-        })
-        .unwrap();
+    terraria_wld::read_tiles(file, base_header, |tile, x, y| {
+        tiles[y as usize * header.width as usize + x as usize] = tile;
+        if let Some(color) = tile_color(&tile) {
+            image_inner.set_pixel(x as u32, y as u32, color);
+        }
+        n_read += 1;
+    })
+    .unwrap();
     assert_eq!(
         n_read,
         header.width as u32 * header.height as u32,
@@ -280,12 +284,20 @@ fn load_tiles(
     *tex = Some(tex_inner);
 }
 
-fn load_world(path: &Path, header: &mut Option<Header>, world: &mut Option<WorldFile>) -> bool {
-    match terraria_wld::WorldFile::open(path, false) {
-        Ok(mut wld) => {
-            let header_inner = wld.read_header().unwrap();
+fn load_world(
+    path: &Path,
+    header: &mut Option<Header>,
+    base_header: &mut Option<BaseHeader>,
+    file: &mut Option<File>,
+) -> bool {
+    match terraria_wld::open(path, false) {
+        Ok((mut file_inner, base_header_inner)) => {
+            let header_inner =
+                terraria_wld::read_header(&mut file_inner, base_header_inner.offsets.header as u64)
+                    .unwrap();
+            *file = Some(file_inner);
             *header = Some(header_inner);
-            *world = Some(wld);
+            *base_header = Some(base_header_inner);
             true
         }
         Err(e) => {
