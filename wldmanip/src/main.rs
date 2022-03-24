@@ -69,7 +69,7 @@ async fn main() -> anyhow::Result<()> {
     let mut show_ui = true;
     let mut tiles = Vec::new();
     prevent_quit();
-    if cfg.load_most_recent && let Some(most_recent) = cfg.recent_files.most_recent().cloned() && load_world(&most_recent, &mut world_base) {
+    if cfg.load_most_recent && let Some(most_recent) = cfg.recent_files.most_recent().cloned() && load_world(&most_recent, &mut world_base, &mut tiles, &mut map_tex) {
         cfg.recent_files.use_(most_recent);
     }
     let mut cam_x = 0.0;
@@ -136,7 +136,8 @@ async fn main() -> anyhow::Result<()> {
                         ui.menu_button("File", |ui| {
                             if ui.button("Open").clicked() {
                                 if let Some(path) = rfd::FileDialog::new().pick_file() {
-                                    if load_world(&path, &mut world_base) {
+                                    if load_world(&path, &mut world_base, &mut tiles, &mut map_tex)
+                                    {
                                         cfg.recent_files.use_(path);
                                     }
                                 }
@@ -147,7 +148,12 @@ async fn main() -> anyhow::Result<()> {
                             ui.menu_button("Recent", |ui| {
                                 for recent in cfg.recent_files.iter() {
                                     if ui.button(recent.display().to_string()).clicked() {
-                                        load_world(recent, &mut world_base);
+                                        load_world(
+                                            recent,
+                                            &mut world_base,
+                                            &mut tiles,
+                                            &mut map_tex,
+                                        );
                                         used = Some(recent.to_owned());
                                         ui.close_menu();
                                         break;
@@ -421,7 +427,15 @@ fn load_tiles(file: &File, base_header: &BaseHeader, header: &Header) -> (Vec<Ti
     (tiles, image)
 }
 
-fn load_world(path: &Path, world_base: &mut Option<WorldBase>) -> bool {
+fn load_world(
+    path: &Path,
+    world_base: &mut Option<WorldBase>,
+    tiles: &mut Vec<Tile>,
+    map_tex: &mut Option<Texture2D>,
+) -> bool {
+    // Reset some stuff when loading new world over an existing one
+    tiles.clear();
+    *map_tex = None;
     match terraria_wld::open(path, false) {
         Ok((file, base_header)) => {
             let header =
