@@ -2,6 +2,7 @@
 
 use std::{
     fs::File,
+    ops::Add,
     path::{Path, PathBuf},
 };
 
@@ -14,7 +15,7 @@ use egui_macroquad::{
 use macroquad::prelude::*;
 use recently_used_list::RecentlyUsedList;
 use serde::{Deserialize, Serialize};
-use terraria_wld::{BaseHeader, Header, Tile};
+use terraria_wld::{BaseHeader, Chest, Header, Tile};
 
 #[derive(Serialize, Deserialize, Default)]
 struct Config {
@@ -52,6 +53,7 @@ fn cfg_path() -> PathBuf {
 struct WorldBase {
     base_header: BaseHeader,
     header: Header,
+    chests: Vec<Chest>,
     file: File,
 }
 
@@ -71,6 +73,7 @@ async fn main() -> anyhow::Result<()> {
     let mut scale = 1;
     let (sender, receiver) = std::sync::mpsc::channel();
     let mut loading_tiles = false;
+    let mut selected_chest = None;
     loop {
         clear_background(BLACK);
 
@@ -108,6 +111,7 @@ async fn main() -> anyhow::Result<()> {
         let mp = mouse_position();
         let tile_x = f32::floor(mp.0 / scale as f32 - cam_x / scale as f32);
         let tile_y = f32::floor(mp.1 / scale as f32 - cam_y / scale as f32);
+        let mut egui_wants_pointer = false;
 
         if show_ui {
             egui_macroquad::ui(|egui_ctx| {
@@ -216,7 +220,17 @@ async fn main() -> anyhow::Result<()> {
                                 });
                         })
                     });
+                    if let Some(index) = selected_chest {
+                        let chest: &Chest = &world_base.chests[index];
+                        Window::new("Chest").show(egui_ctx, |ui| {
+                            Grid::new("chest_grid").show(ui, |ui| {
+                                field_macro!(ui, field);
+                                field!("name", chest.name);
+                            });
+                        });
+                    }
                 }
+                egui_wants_pointer = egui_ctx.wants_pointer_input();
             });
             egui_macroquad::draw();
         }
@@ -235,6 +249,17 @@ async fn main() -> anyhow::Result<()> {
             scale /= 2;
             cam_x /= 2.0;
             cam_y /= 2.0;
+        }
+
+        if !egui_wants_pointer && is_mouse_button_pressed(MouseButton::Left) {
+            selected_chest = None;
+            if let Some(world_base) = &world_base {
+                for (i, chest) in world_base.chests.iter().enumerate() {
+                    if rect_contains_point(chest.x, chest.y, 2, 2, tile_x as u16, tile_y as u16) {
+                        selected_chest = Some(i);
+                    }
+                }
+            }
         }
 
         let speed = 16.0;
@@ -272,6 +297,17 @@ async fn main() -> anyhow::Result<()> {
 
         next_frame().await;
     }
+}
+
+fn rect_contains_point<T: PartialOrd + Add<Output = T> + Copy>(
+    rx: T,
+    ry: T,
+    rw: T,
+    rh: T,
+    px: T,
+    py: T,
+) -> bool {
+    px >= rx && py >= ry && px < rx + rw && py < ry + rh
 }
 
 macro field_macro($ui:expr, $macname:ident) {
@@ -321,10 +357,13 @@ fn load_world(path: &Path, world_base: &mut Option<WorldBase>) -> bool {
         Ok((file, base_header)) => {
             let header =
                 terraria_wld::read_header(&file, base_header.offsets.header as u64).unwrap();
+            let chests =
+                terraria_wld::read_chests(&file, base_header.offsets.chests as u64).unwrap();
             *world_base = Some(WorldBase {
                 base_header,
                 header,
                 file,
+                chests,
             });
             true
         }
