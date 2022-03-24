@@ -22,6 +22,10 @@ struct Config {
     recent_files: RecentlyUsedList<PathBuf>,
     #[serde(default)]
     load_most_recent: bool,
+    #[serde(default)]
+    draw_center_marker: bool,
+    #[serde(default)]
+    load_tiles_at_start: bool,
 }
 
 impl Config {
@@ -73,6 +77,17 @@ async fn main() -> anyhow::Result<()> {
     let mut scale = 1;
     let (sender, receiver) = std::sync::mpsc::channel();
     let mut loading_tiles = false;
+    if let Some(world_base) = &world_base && cfg.load_tiles_at_start {
+        let base_header = world_base.base_header.clone();
+        let header = world_base.header.clone();
+        let file = world_base.file.try_clone().unwrap();
+        let sender = sender.clone();
+        std::thread::spawn(move || {
+            let ret_val = load_tiles(&file, &base_header, &header);
+            sender.send(ret_val).unwrap();
+        });
+        loading_tiles = true;
+    }
     let mut selected_chest = None;
     let item_id_map = terraria_strings::item_ids();
     loop {
@@ -117,30 +132,41 @@ async fn main() -> anyhow::Result<()> {
         if show_ui {
             egui_macroquad::ui(|egui_ctx| {
                 TopBottomPanel::top("top_panel").show(egui_ctx, |ui| {
-                    ui.menu_button("File", |ui| {
-                        if ui.button("Open").clicked() {
-                            if let Some(path) = rfd::FileDialog::new().pick_file() {
-                                if load_world(&path, &mut world_base) {
-                                    cfg.recent_files.use_(path);
+                    ui.horizontal(|ui| {
+                        ui.menu_button("File", |ui| {
+                            if ui.button("Open").clicked() {
+                                if let Some(path) = rfd::FileDialog::new().pick_file() {
+                                    if load_world(&path, &mut world_base) {
+                                        cfg.recent_files.use_(path);
+                                    }
                                 }
-                            }
-                            ui.close_menu();
-                        }
-                        ui.separator();
-                        let mut used = None;
-                        for recent in cfg.recent_files.iter() {
-                            if ui.button(recent.display().to_string()).clicked() {
-                                load_world(recent, &mut world_base);
-                                used = Some(recent.to_owned());
                                 ui.close_menu();
-                                break;
                             }
-                        }
-                        if let Some(used) = used {
-                            cfg.recent_files.use_(used);
-                        }
-                        ui.separator();
-                        ui.checkbox(&mut cfg.load_most_recent, "Load most recent file at start");
+                            ui.separator();
+                            let mut used = None;
+                            ui.menu_button("Recent", |ui| {
+                                for recent in cfg.recent_files.iter() {
+                                    if ui.button(recent.display().to_string()).clicked() {
+                                        load_world(recent, &mut world_base);
+                                        used = Some(recent.to_owned());
+                                        ui.close_menu();
+                                        break;
+                                    }
+                                }
+                            });
+                            if let Some(used) = used {
+                                cfg.recent_files.use_(used);
+                            }
+                            ui.separator();
+                            ui.checkbox(
+                                &mut cfg.load_most_recent,
+                                "Load most recent file at start",
+                            );
+                            ui.checkbox(&mut cfg.load_tiles_at_start, "Load tiles at start");
+                        });
+                        ui.menu_button("View", |ui| {
+                            ui.checkbox(&mut cfg.draw_center_marker, "Draw center marker");
+                        });
                     });
                 });
                 if let Some(world_base) = &mut world_base {
@@ -218,6 +244,8 @@ async fn main() -> anyhow::Result<()> {
                                         field!("Pointing at", format!("{}, {}", tile_x, tile_y));
                                         field!("Tile", format!("{:#?}", tile));
                                     }
+                                    field!("cam x", cam_x);
+                                    field!("cam y", cam_y);
                                 });
                         })
                     });
@@ -253,20 +281,43 @@ async fn main() -> anyhow::Result<()> {
             egui_macroquad::draw();
         }
 
+        if cfg.draw_center_marker {
+            draw_line(
+                screen_width() / 2.,
+                0.,
+                screen_width() / 2.,
+                screen_height(),
+                1.0,
+                RED,
+            );
+            draw_line(
+                0.,
+                screen_height() / 2.,
+                screen_width(),
+                screen_height() / 2.,
+                1.0,
+                RED,
+            );
+        }
+
         if is_key_pressed(KeyCode::F12) {
             show_ui ^= true;
         }
 
         if is_key_pressed(KeyCode::KpAdd) {
+            cam_x *= 2.;
+            cam_x -= screen_width() / 2.;
+            cam_y *= 2.;
+            cam_y -= screen_height() / 2.;
             scale *= 2;
-            cam_x *= 2.0;
-            cam_y *= 2.0;
         }
 
         if is_key_pressed(KeyCode::KpSubtract) && scale > 1 {
+            cam_x += screen_width() / 2.;
+            cam_x /= 2.;
+            cam_y += screen_height() / 2.;
+            cam_y /= 2.;
             scale /= 2;
-            cam_x /= 2.0;
-            cam_y /= 2.0;
         }
 
         if !egui_wants_pointer && is_mouse_button_pressed(MouseButton::Left) {
@@ -298,13 +349,13 @@ async fn main() -> anyhow::Result<()> {
         if let Some(world_base) = &world_base {
             cam_x = clamp(
                 cam_x,
-                -(world_base.header.width as f32 * scale as f32) + screen_width(),
-                0.,
+                -(world_base.header.width as f32 * scale as f32) + screen_width() / 2.,
+                screen_width() / 2.,
             );
             cam_y = clamp(
                 cam_y,
-                -(world_base.header.height as f32 * scale as f32) + screen_height(),
-                0.,
+                -(world_base.header.height as f32 * scale as f32) + screen_height() / 2.,
+                screen_height() / 2.,
             );
         }
 
