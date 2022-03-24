@@ -15,7 +15,7 @@ use egui_macroquad::{
 use macroquad::prelude::*;
 use recently_used_list::RecentlyUsedList;
 use serde::{Deserialize, Serialize};
-use terraria_wld::{BaseHeader, Chest, Header, Tile};
+use terraria_wld::{BaseHeader, Chest, Header, Liquid, Tile};
 
 #[derive(Serialize, Deserialize, Default)]
 struct Config {
@@ -248,7 +248,23 @@ async fn main() -> anyhow::Result<()> {
                                             + tile_x as usize,
                                     ) {
                                         field!("Pointing at", format!("{}, {}", tile_x, tile_y));
-                                        field!("Tile", format!("{:#?}", tile));
+                                        match tile.front {
+                                            Some(id) => field!("Tile", id),
+                                            None => field!("Tile", "[none]"),
+                                        };
+                                        match tile.back {
+                                            Some(id) => field!("Wall", id),
+                                            None => field!("Wall", "[none]"),
+                                        };
+                                        field!(
+                                            "Liquid",
+                                            match tile.liquid {
+                                                None => "[none]",
+                                                Some(Liquid::Water) => "Water",
+                                                Some(Liquid::Honey) => "Honey",
+                                                Some(Liquid::Lava) => "Lava",
+                                            }
+                                        );
                                     }
                                     field!("cam x", cam_x);
                                     field!("cam y", cam_y);
@@ -386,11 +402,11 @@ fn rect_contains_point<T: PartialOrd + Add<Output = T> + Copy>(
 }
 
 macro field_macro($ui:expr, $macname:ident) {
-    macro $macname($name:expr, $val:expr) {
+    macro $macname($name:expr, $val:expr) {{
         $ui.label($name);
         $ui.label($val.to_string());
         $ui.end_row();
-    }
+    }}
 }
 
 fn guid_to_hex(guid: &[u8; 16]) -> String {
