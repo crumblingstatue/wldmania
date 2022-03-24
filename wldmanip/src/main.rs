@@ -48,17 +48,22 @@ fn cfg_path() -> PathBuf {
     cfg_path
 }
 
+/// World data without the tiles
+struct WorldBase {
+    base_header: BaseHeader,
+    header: Header,
+    file: File,
+}
+
 #[macroquad::main("egui with macroquad")]
 async fn main() -> anyhow::Result<()> {
-    let mut file = None;
-    let mut base_header = None;
-    let mut header = None;
+    let mut world_base = None;
     let mut map_tex = None;
     let mut cfg = Config::load_or_default()?;
     let mut show_ui = true;
     let mut tiles = Vec::new();
     prevent_quit();
-    if cfg.load_most_recent && let Some(most_recent) = cfg.recent_files.most_recent().cloned() && load_world(&most_recent, &mut header, &mut base_header, &mut file) {
+    if cfg.load_most_recent && let Some(most_recent) = cfg.recent_files.most_recent().cloned() && load_world(&most_recent, &mut world_base) {
         cfg.recent_files.use_(most_recent);
     }
     let mut cam_x = 0.0;
@@ -71,31 +76,33 @@ async fn main() -> anyhow::Result<()> {
 
         // Process keys, mouse etc.
 
-        if let Some(tex) = map_tex {
-            let header = header.as_ref().unwrap();
-            draw_texture_ex(
-                tex,
-                cam_x,
-                cam_y,
-                WHITE,
-                DrawTextureParams {
-                    dest_size: Some(vec2(
-                        header.width as f32 * scale as f32,
-                        header.height as f32 * scale as f32,
-                    )),
-                    source: None,
-                    rotation: 0.0,
-                    flip_x: false,
-                    flip_y: false,
-                    pivot: None,
-                },
-            );
-        } else if let Ok((tiles_, img)) = receiver.try_recv() {
-            tiles = tiles_;
-            let tex = Texture2D::from_image(&img);
-            tex.set_filter(FilterMode::Nearest);
-            map_tex = Some(tex);
-            loading_tiles = false;
+        if let Some(world_base) = &mut world_base {
+            if let Some(tex) = map_tex {
+                let header = &world_base.header;
+                draw_texture_ex(
+                    tex,
+                    cam_x,
+                    cam_y,
+                    WHITE,
+                    DrawTextureParams {
+                        dest_size: Some(vec2(
+                            header.width as f32 * scale as f32,
+                            header.height as f32 * scale as f32,
+                        )),
+                        source: None,
+                        rotation: 0.0,
+                        flip_x: false,
+                        flip_y: false,
+                        pivot: None,
+                    },
+                );
+            } else if let Ok((tiles_, img)) = receiver.try_recv() {
+                tiles = tiles_;
+                let tex = Texture2D::from_image(&img);
+                tex.set_filter(FilterMode::Nearest);
+                map_tex = Some(tex);
+                loading_tiles = false;
+            }
         }
 
         let mp = mouse_position();
@@ -108,7 +115,7 @@ async fn main() -> anyhow::Result<()> {
                     ui.menu_button("File", |ui| {
                         if ui.button("Open").clicked() {
                             if let Some(path) = rfd::FileDialog::new().pick_file() {
-                                if load_world(&path, &mut header, &mut base_header, &mut file) {
+                                if load_world(&path, &mut world_base) {
                                     cfg.recent_files.use_(path);
                                 }
                             }
@@ -118,7 +125,7 @@ async fn main() -> anyhow::Result<()> {
                         let mut used = None;
                         for recent in cfg.recent_files.iter() {
                             if ui.button(recent.display().to_string()).clicked() {
-                                load_world(recent, &mut header, &mut base_header, &mut file);
+                                load_world(recent, &mut world_base);
                                 used = Some(recent.to_owned());
                                 ui.close_menu();
                                 break;
@@ -131,26 +138,25 @@ async fn main() -> anyhow::Result<()> {
                         ui.checkbox(&mut cfg.load_most_recent, "Load most recent file at start");
                     });
                 });
-                if let Some(base_header) = &mut base_header {
+                if let Some(world_base) = &mut world_base {
                     Window::new("World").show(egui_ctx, |ui| {
                         ScrollArea::vertical().show(ui, |ui| {
                             ui.set_height(600.0);
                             ui.heading("Basic");
                             Grid::new("basic_info_grid").striped(true).show(ui, |ui| {
                                 ui.label("Version");
-                                ui.label(base_header.version.to_string());
+                                ui.label(world_base.base_header.version.to_string());
                                 ui.end_row();
                                 ui.label("Times saved");
-                                ui.label(base_header.times_saved.to_string());
+                                ui.label(world_base.base_header.times_saved.to_string());
                             });
                             ui.separator();
-                            if let Some(header) = &header && let Some(file) = &mut file {
-                                ui.heading("Header");
-                                if !loading_tiles {
+                            ui.heading("Header");
+                            if !loading_tiles {
                                 if ui.button("Load tiles").clicked() {
-                                    let base_header = base_header.clone();
-                                    let header = header.clone();
-                                    let file = file.try_clone().unwrap();
+                                    let base_header = world_base.base_header.clone();
+                                    let header = world_base.header.clone();
+                                    let file = world_base.file.try_clone().unwrap();
                                     let sender = sender.clone();
                                     std::thread::spawn(move || {
                                         let ret_val = load_tiles(&file, &base_header, &header);
@@ -164,39 +170,50 @@ async fn main() -> anyhow::Result<()> {
                                     ui.add(Spinner::new());
                                 });
                             }
-                                Grid::new("header_grid").striped(true).show(ui, |ui| {
+                            Grid::new("world_base.header_grid")
+                                .striped(true)
+                                .show(ui, |ui| {
                                     field_macro!(ui, field);
-                                    field!("Name", header.name);
-                                    field!("Seed", header.seed);
-                                    field!("Generator version", header.generator_version);
-                                    field!("GUID", guid_to_hex(&header.guid));
-                                    field!("World id", header.id);
+                                    field!("Name", world_base.header.name);
+                                    field!("Seed", world_base.header.seed);
+                                    field!(
+                                        "Generator version",
+                                        world_base.header.generator_version
+                                    );
+                                    field!("GUID", guid_to_hex(&world_base.header.guid));
+                                    field!("World id", world_base.header.id);
                                     ui.label("Bounds");
                                     Grid::new("bounds_grid").striped(true).show(ui, |ui| {
                                         field_macro!(ui, field2);
-                                        field2!("left", header.bounds.left);
-                                        field2!("right", header.bounds.right);
-                                        field2!("top", header.bounds.top);
-                                        field2!("bottom", header.bounds.bottom);
+                                        field2!("left", world_base.header.bounds.left);
+                                        field2!("right", world_base.header.bounds.right);
+                                        field2!("top", world_base.header.bounds.top);
+                                        field2!("bottom", world_base.header.bounds.bottom);
                                     });
                                     ui.end_row();
-                                    field!("size", format!("{}x{}", header.width, header.height));
+                                    field!(
+                                        "size",
+                                        format!(
+                                            "{}x{}",
+                                            world_base.header.width, world_base.header.height
+                                        )
+                                    );
                                     field!(
                                         "Game mode",
                                         format!(
                                             "{} ({})",
-                                            game_mode_name(header.game_mode),
-                                            header.game_mode
+                                            game_mode_name(world_base.header.game_mode),
+                                            world_base.header.game_mode
                                         )
                                     );
                                     if let Some(tile) = tiles.get(
-                                        tile_y as usize * header.width as usize + tile_x as usize,
+                                        tile_y as usize * world_base.header.width as usize
+                                            + tile_x as usize,
                                     ) {
                                         field!("Pointing at", format!("{}, {}", tile_x, tile_y));
                                         field!("Tile", format!("{:#?}", tile));
                                     }
                                 });
-                            }
                         })
                     });
                 }
@@ -235,15 +252,15 @@ async fn main() -> anyhow::Result<()> {
             cam_y -= speed;
         }
 
-        if let Some(header) = &header {
+        if let Some(world_base) = &world_base {
             cam_x = clamp(
                 cam_x,
-                -(header.width as f32 * scale as f32) + screen_width(),
+                -(world_base.header.width as f32 * scale as f32) + screen_width(),
                 0.,
             );
             cam_y = clamp(
                 cam_y,
-                -(header.height as f32 * scale as f32) + screen_height(),
+                -(world_base.header.height as f32 * scale as f32) + screen_height(),
                 0.,
             );
         }
@@ -299,20 +316,16 @@ fn load_tiles(file: &File, base_header: &BaseHeader, header: &Header) -> (Vec<Ti
     (tiles, image)
 }
 
-fn load_world(
-    path: &Path,
-    header: &mut Option<Header>,
-    base_header: &mut Option<BaseHeader>,
-    file: &mut Option<File>,
-) -> bool {
+fn load_world(path: &Path, world_base: &mut Option<WorldBase>) -> bool {
     match terraria_wld::open(path, false) {
-        Ok((file_inner, base_header_inner)) => {
-            let header_inner =
-                terraria_wld::read_header(&file_inner, base_header_inner.offsets.header as u64)
-                    .unwrap();
-            *file = Some(file_inner);
-            *header = Some(header_inner);
-            *base_header = Some(base_header_inner);
+        Ok((file, base_header)) => {
+            let header =
+                terraria_wld::read_header(&file, base_header.offsets.header as u64).unwrap();
+            *world_base = Some(WorldBase {
+                base_header,
+                header,
+                file,
+            });
             true
         }
         Err(e) => {
