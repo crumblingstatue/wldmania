@@ -1,10 +1,10 @@
 //! Requirements file parsing
 
-use crate::ItemIdMap;
 use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
+use terraria_strings::ItemIdMap;
 use terraria_wld::ChestType;
 
 #[derive(Debug, PartialEq)]
@@ -148,7 +148,7 @@ impl<Tracker: Default> Requirement<Tracker> {
 
 #[test]
 fn test_parse() {
-    let item_ids = crate::item_ids();
+    let item_ids = terraria_strings::item_ids();
     assert_eq!(
         Requirement::parse(
             "Sandstorm in a Bottle: gold/locked shadow, 2, 3-7",
@@ -169,7 +169,7 @@ fn test_parse() {
 
 #[test]
 fn test_parse_no_extra() {
-    let item_ids = crate::item_ids();
+    let item_ids = terraria_strings::item_ids();
     assert_eq!(
         Requirement::parse("Sandstorm in a Bottle", &item_ids).unwrap(),
         Requirement {

@@ -7,9 +7,6 @@ use std::fs::File;
 use std::io::{self, prelude::*};
 use std::path::{Path, PathBuf};
 
-use crate::item_id_pairs::ITEM_ID_PAIRS;
-
-mod item_id_pairs;
 mod prefix_names;
 mod req_file;
 
@@ -145,7 +142,7 @@ fn chest_info(wld_path: &Path, x: u16, y: u16) -> Result<(), Box<dyn Error>> {
     let (file, base_header) = terraria_wld::open(wld_path, false)?;
     let chests = terraria_wld::read_chests(&file, base_header.offsets.chests as u64)?;
     let chest_types = terraria_wld::read_chest_types(&file, &base_header)?;
-    let ids = item_ids();
+    let ids = terraria_strings::item_ids();
     for chest in &chests {
         if chest.x == x && chest.y == y {
             println!("{:?} Chest containing: ", chest_types[&(chest.x, chest.y)]);
@@ -170,28 +167,6 @@ fn generate_template_cfg(path: &Path) -> io::Result<()> {
     f.write_all(include_bytes!("../templates/itemhunt.list"))
 }
 
-pub struct ItemIdMap(Vec<(u16, &'static str)>);
-
-impl ItemIdMap {
-    fn name_by_id(&self, id: u16) -> Option<&str> {
-        self.0.iter().find(|pair| pair.0 == id).map(|pair| pair.1)
-    }
-    fn id_by_name(&self, name: &str) -> Option<u16> {
-        self.0.iter().find(|pair| pair.1 == name).map(|pair| pair.0)
-    }
-}
-
-fn item_ids() -> ItemIdMap {
-    let mut item_ids = Vec::new();
-    for line in ITEM_ID_PAIRS.lines() {
-        let mut parts = line.split('\t');
-        let id: u16 = parts.next().unwrap().parse().unwrap();
-        let name = parts.next().unwrap();
-        item_ids.push((id, name));
-    }
-    ItemIdMap(item_ids)
-}
-
 /// There are buffer areas at the edges of terraria worlds that exist, but the player cannot
 /// access. For some reason, the world generator can generate chests there, even though they
 /// cannot be looted by legit means.
@@ -209,7 +184,7 @@ where
     T: AsRef<Path>,
     Iter: IntoIterator<Item = T>,
 {
-    let id_map = item_ids();
+    let id_map = terraria_strings::item_ids();
     let mut required_items = req_file::from_path::<u16>(cfg_path, &id_map)?;
     let mut n_meet_reqs = 0;
     for world_path in world_paths {
@@ -263,7 +238,7 @@ where
 }
 
 fn find_item(world_path: &Path, name: &str) -> Result<(), Box<dyn Error>> {
-    let ids = item_ids();
+    let ids = terraria_strings::item_ids();
     let id = ids
         .id_by_name(name)
         .ok_or_else(|| format!("No matching id found for item '{}'", name))?;
@@ -327,7 +302,7 @@ fn place_in_chest(
 }
 
 fn validate_req_for_bless<T: Default>(reqs: &[req_file::Requirement<T>]) -> Result<(), String> {
-    let ids = item_ids();
+    let ids = terraria_strings::item_ids();
     for req in reqs {
         if req.only_in.is_empty() {
             let name = ids.name_by_id(req.id).unwrap();
@@ -341,7 +316,7 @@ fn validate_req_for_bless<T: Default>(reqs: &[req_file::Requirement<T>]) -> Resu
 }
 
 fn bless_chests(cfg_path: &Path, world_path: &Path) -> Result<(), Box<dyn Error>> {
-    let item_ids = item_ids();
+    let item_ids = terraria_strings::item_ids();
     struct Tracker {
         acceptable_chest_indexes: Box<dyn Iterator<Item = usize>>,
     }
@@ -448,7 +423,7 @@ fn analyze_chests(world_path: &Path) -> Result<(), Box<dyn Error>> {
     }
     let mut vec = item_stats.into_iter().collect::<Vec<_>>();
     vec.sort_by(|&(_, ref v1), &(_, ref v2)| v1.stack_count.cmp(&v2.stack_count).reverse());
-    let ids = item_ids();
+    let ids = terraria_strings::item_ids();
     println!("{:30}stack total", "name");
     for (k, v) in vec {
         match ids.name_by_id(k as u16) {

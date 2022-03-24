@@ -1157,6 +1157,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "terraria-strings"
+version = "0.1.0"
+
+[[package]]
 name = "terraria-wld"
 version = "0.1.0"
 dependencies = [
@@ -1461,6 +1465,7 @@ dependencies = [
  "ansi_term",
  "clap",
  "rand",
+ "terraria-strings",
  "terraria-wld",
 ]
 
@@ -1475,6 +1480,7 @@ dependencies = [
  "rfd",
  "serde",
  "serde_json",
+ "terraria-strings",
  "terraria-wld",
 ]
 

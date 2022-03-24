@@ -74,6 +74,7 @@ async fn main() -> anyhow::Result<()> {
     let (sender, receiver) = std::sync::mpsc::channel();
     let mut loading_tiles = false;
     let mut selected_chest = None;
+    let item_id_map = terraria_strings::item_ids();
     loop {
         clear_background(BLACK);
 
@@ -222,11 +223,28 @@ async fn main() -> anyhow::Result<()> {
                     });
                     if let Some(index) = selected_chest {
                         let chest: &Chest = &world_base.chests[index];
-                        Window::new("Chest").show(egui_ctx, |ui| {
-                            Grid::new("chest_grid").show(ui, |ui| {
-                                field_macro!(ui, field);
-                                field!("name", chest.name);
-                            });
+                        let chest_name_fmt: String;
+                        let label = if chest.name.is_empty() {
+                            "Chest"
+                        } else {
+                            chest_name_fmt = format!("Chest: {}", chest.name);
+                            &chest_name_fmt
+                        };
+                        Window::new(label).show(egui_ctx, |ui| {
+                            for item in &chest.items {
+                                if item.id != 0 {
+                                    match item_id_map.name_by_id(item.id as u16) {
+                                        Some(name) => {
+                                            ui.label(format!("{} x {}", name, item.stack))
+                                        }
+                                        None => ui.label(format!(
+                                            "Unknown item ({}) x {}",
+                                            item.id, item.stack
+                                        )),
+                                    };
+                                }
+                                ui.end_row();
+                            }
                         });
                     }
                 }

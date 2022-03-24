@@ -9,6 +9,7 @@ clap = {version = "3.0.4", features = ["derive"]}
 ansi_term = "0.12.1"
 rand = "0.8.4"
 terraria-wld = { path = "terraria-wld" }
+terraria-strings = { path = "terraria-strings" }
 
 [workspace]
-members = ["terraria-wld", "wldmanip"]
+members = ["terraria-wld", "terraria-strings", "wldmanip"]
