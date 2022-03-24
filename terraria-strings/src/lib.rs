@@ -11,7 +11,7 @@ impl ItemIdMap {
 
 pub fn item_ids() -> ItemIdMap {
     let mut item_ids = Vec::new();
-    for line in ITEM_ID_PAIRS.lines() {
+    for line in ITEM_ID_LIST.lines() {
         let mut parts = line.split('\t');
         let id: u16 = parts.next().unwrap().parse().unwrap();
         let name = parts.next().unwrap();
@@ -21,4 +21,4 @@ pub fn item_ids() -> ItemIdMap {
 }
 
 /// These are taken from https://terraria.fandom.com/wiki/Item_IDs
-pub static ITEM_ID_PAIRS: &str = include_str!("../item_id_list.txt");
+static ITEM_ID_LIST: &str = include_str!("../item_id_list.txt");
