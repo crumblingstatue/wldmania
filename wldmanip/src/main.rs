@@ -530,6 +530,8 @@ fn tile_color(tile: &Tile) -> Option<Color> {
             161 | 162 => Color::from_rgba(151, 165, 220, 255),
             // Pink ice
             164 => Color::from_rgba(194, 165, 220, 255),
+            // Stones, tiny rubble, etc
+            185 => Color::from_rgba(153, 125, 99, 255),
             // Living wood
             191 => BROWN,
             // Living leaf
