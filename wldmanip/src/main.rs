@@ -488,6 +488,8 @@ fn tile_color(tile: &Tile) -> Option<Color> {
             6 | 7 | 8 | 9 => ORANGE,
             // Platform
             19 => BROWN,
+            // Pots
+            28 => Color::from_rgba(144, 69, 0, 255),
             // Wood
             30 => BROWN,
             // Clay
