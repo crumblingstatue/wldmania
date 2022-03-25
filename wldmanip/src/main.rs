@@ -495,7 +495,7 @@ fn tile_color(tile: &Tile) -> Option<Color> {
             // Dungeon brick
             43 | 44 => Color::from_rgba(131, 0, 178, 255),
             // Chest
-            21 => YELLOW,
+            21 | 467 => YELLOW,
             // Cobweb
             51 => Color::from_rgba(188, 175, 174, 255),
             // Vine
