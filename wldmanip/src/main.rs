@@ -481,7 +481,7 @@ fn tile_color(tile: &Tile) -> Option<Color> {
             0 => BROWN,
             1 => GRAY,
             2 => GREEN,
-            3 => YELLOW,
+            3 => Color::from_rgba(204, 255, 0, 255),
             4 => RED,
             5 => BROWN,
             // Iron/copper/etc
@@ -501,7 +501,7 @@ fn tile_color(tile: &Tile) -> Option<Color> {
             // Vine
             52 => GREEN,
             // Sand
-            53 | 112 | 116 | 234 => YELLOW,
+            53 | 112 | 116 | 234 => Color::from_rgba(234, 213, 0, 255),
             // Ash
             57 => DARKGRAY,
             // Hellstone
