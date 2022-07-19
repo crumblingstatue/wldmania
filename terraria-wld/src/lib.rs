@@ -424,7 +424,7 @@ fn test_bits_u8() {
     assert!(0b1000_0010.nth_bit_set(7));
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ChestType {
     Plain,
     Gold,
@@ -517,7 +517,7 @@ impl Header {
             YSide::BelowSurface
         };
         GpsPos {
-            x_offset: raw_x.abs() as u32,
+            x_offset: raw_x.unsigned_abs(),
             y_offset: raw_y.abs() as u32,
             x_side,
             y_side,

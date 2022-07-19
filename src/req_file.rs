@@ -7,7 +7,7 @@ use std::path::Path;
 use terraria_strings::ItemIdMap;
 use terraria_wld::ChestType;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Requirement<Tracker: Default> {
     pub id: u16,
     pub n_stacks: u16,
