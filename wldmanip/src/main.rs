@@ -1,4 +1,4 @@
-#![feature(let_chains, decl_macro)]
+#![feature(decl_macro)]
 
 use std::{
     fs::File,
