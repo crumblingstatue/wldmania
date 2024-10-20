@@ -69,7 +69,10 @@ async fn main() -> anyhow::Result<()> {
     let mut show_ui = true;
     let mut tiles = Vec::new();
     prevent_quit();
-    if cfg.load_most_recent && let Some(most_recent) = cfg.recent_files.most_recent().cloned() && load_world(&most_recent, &mut world_base, &mut tiles, &mut map_tex) {
+    if cfg.load_most_recent
+        && let Some(most_recent) = cfg.recent_files.most_recent().cloned()
+        && load_world(&most_recent, &mut world_base, &mut tiles, &mut map_tex)
+    {
         cfg.recent_files.use_(most_recent);
     }
     let mut cam_x = 0.0;
@@ -77,7 +80,9 @@ async fn main() -> anyhow::Result<()> {
     let mut scale = 1;
     let (sender, receiver) = std::sync::mpsc::channel();
     let mut loading_tiles = false;
-    if let Some(world_base) = &world_base && cfg.load_tiles_at_start {
+    if let Some(world_base) = &world_base
+        && cfg.load_tiles_at_start
+    {
         let base_header = world_base.base_header.clone();
         let header = world_base.header.clone();
         let file = world_base.file.try_clone().unwrap();
