@@ -422,7 +422,7 @@ fn analyze_chests(world_path: &Path) -> Result<(), Box<dyn Error>> {
         }
     }
     let mut vec = item_stats.into_iter().collect::<Vec<_>>();
-    vec.sort_by(|&(_, ref v1), &(_, ref v2)| v1.stack_count.cmp(&v2.stack_count).reverse());
+    vec.sort_by(|(_, v1), (_, v2)| v1.stack_count.cmp(&v2.stack_count).reverse());
     let ids = terraria_strings::item_ids();
     println!("{:30}stack total", "name");
     for (k, v) in vec {

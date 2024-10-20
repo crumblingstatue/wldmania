@@ -133,10 +133,10 @@ pub fn write_chests(
     file.read_to_end(&mut rest_buf)?;
     file.seek(SeekFrom::Start(base_header.offsets.chests as u64))?;
     write_chests_inner(file, chests)?;
-    let new_signs_offset = file.seek(SeekFrom::Current(0))?;
+    let new_signs_offset = file.stream_position()?;
     // Write back everything after chests
     file.write_all(&rest_buf)?;
-    let offs_diff = new_signs_offset as i32 - base_header.offsets.signs as i32;
+    let offs_diff = new_signs_offset as i32 - base_header.offsets.signs;
     file.seek(SeekFrom::Start(OFFSET_TABLE_OFFSET))?;
     base_header.offsets.signs += offs_diff;
     base_header.offsets.npcs += offs_diff;
@@ -407,7 +407,7 @@ impl Bits for u8 {
     }
 }
 
-impl<'a> Bits for &'a [u8] {
+impl Bits for &[u8] {
     type Index = usize;
     fn nth_bit_set(self, index: usize) -> bool {
         let byte_idx = index / 8;
