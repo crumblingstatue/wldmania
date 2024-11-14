@@ -9,7 +9,7 @@ use std::{
 use directories::ProjectDirs;
 use egui_macroquad::{
     egui::{Grid, ScrollArea, Spinner, TopBottomPanel, Window},
-    macroquad,
+    macroquad, EguiMqInteg,
 };
 
 use macroquad::prelude::*;
@@ -95,16 +95,17 @@ async fn main() -> anyhow::Result<()> {
     }
     let mut selected_chest = None;
     let item_id_map = terraria_strings::item_ids();
+    let mut egui_mq = EguiMqInteg::new();
     loop {
         clear_background(BLACK);
 
         // Process keys, mouse etc.
 
         if let Some(world_base) = &mut world_base {
-            if let Some(tex) = map_tex {
+            if let Some(tex) = &map_tex {
                 let header = &world_base.header;
                 draw_texture_ex(
-                    tex,
+                    &tex,
                     cam_x,
                     cam_y,
                     WHITE,
@@ -135,7 +136,7 @@ async fn main() -> anyhow::Result<()> {
         let mut egui_wants_pointer = false;
 
         if show_ui {
-            egui_macroquad::ui(|egui_ctx| {
+            egui_mq.ui(|_, egui_ctx| {
                 TopBottomPanel::top("top_panel").show(egui_ctx, |ui| {
                     ui.horizontal(|ui| {
                         ui.menu_button("File", |ui| {
@@ -305,7 +306,7 @@ async fn main() -> anyhow::Result<()> {
                 }
                 egui_wants_pointer = egui_ctx.wants_pointer_input();
             });
-            egui_macroquad::draw();
+            egui_mq.draw();
         }
 
         if cfg.draw_center_marker {
