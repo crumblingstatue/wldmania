@@ -446,9 +446,9 @@ checksum = "75b325c5dbd37f80359721ad39aca5a29fb04c89279657cffdda8736d0c0b9d2"
 
 [[package]]
 name = "ecolor"
-version = "0.30.0"
+version = "0.31.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7d72e9c39f6e11a2e922d04a34ec5e7ef522ea3f5a1acfca7a19d16ad5fe50f5"
+checksum = "bc4feb366740ded31a004a0e4452fbf84e80ef432ecf8314c485210229672fd1"
 dependencies = [
  "bytemuck",
  "emath",
@@ -456,11 +456,12 @@ dependencies = [
 
 [[package]]
 name = "egui"
-version = "0.30.0"
+version = "0.31.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "252d52224d35be1535d7fd1d6139ce071fb42c9097773e79f7665604f5596b5e"
+checksum = "25dd34cec49ab55d85ebf70139cb1ccd29c977ef6b6ba4fe85489d6877ee9ef3"
 dependencies = [
  "ahash",
+ "bitflags 2.9.1",
  "emath",
  "epaint",
  "nohash-hasher",
@@ -470,7 +471,7 @@ dependencies = [
 [[package]]
 name = "egui-macroquad"
 version = "0.16.0"
-source = "git+https://github.com/crumblingstatue/egui-macroquad.git#255640531901f54cffd58bc505bf3ff9528807aa"
+source = "git+https://github.com/crumblingstatue/egui-macroquad.git#9843b61cb4e50d5f4a8fdaa08cd5f0502efd061b"
 dependencies = [
  "egui-miniquad",
  "macroquad",
@@ -479,12 +480,12 @@ dependencies = [
 [[package]]
 name = "egui-miniquad"
 version = "0.15.0"
-source = "git+https://github.com/crumblingstatue/egui-miniquad.git#cffe4bb105178499ed549878514f56ab296e9dc8"
+source = "git+https://github.com/crumblingstatue/egui-miniquad.git#6f8a7399ab76fdcb05559bd554aac1c7e5029ae4"
 dependencies = [
  "bytemuck",
  "copypasta",
  "egui",
- "getrandom 0.2.16",
+ "getrandom 0.3.3",
  "miniquad",
  "quad-rand",
  "quad-url",
@@ -492,18 +493,18 @@ dependencies = [
 
 [[package]]
 name = "emath"
-version = "0.30.0"
+version = "0.31.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c4fe73c1207b864ee40aa0b0c038d6092af1030744678c60188a05c28553515d"
+checksum = "9e4cadcff7a5353ba72b7fea76bf2122b5ebdbc68e8155aa56dfdea90083fe1b"
 dependencies = [
  "bytemuck",
 ]
 
 [[package]]
 name = "epaint"
-version = "0.30.0"
+version = "0.31.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5666f8d25236293c966fbb3635eac18b04ad1914e3bab55bc7d44b9980cafcac"
+checksum = "41fcc0f5a7c613afd2dee5e4b30c3e6acafb8ad6f0edb06068811f708a67c562"
 dependencies = [
  "ab_glyph",
  "ahash",
@@ -518,9 +519,9 @@ dependencies = [
 
 [[package]]
 name = "epaint_default_fonts"
-version = "0.30.0"
+version = "0.31.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "66f6ddac3e6ac6fd4c3d48bb8b1943472f8da0f43a4303bcd8a18aa594401c80"
+checksum = "fc7e7a64c02cf7a5b51e745a9e45f60660a286f151c238b9d397b3e923f5082f"
 
 [[package]]
 name = "equivalent"
