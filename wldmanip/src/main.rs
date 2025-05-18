@@ -50,8 +50,8 @@ impl Config {
 
 fn cfg_path() -> PathBuf {
     let proj_dir = ProjectDirs::from("", "crumblingstatue", "wldmanip").unwrap();
-    let cfg_path = proj_dir.config_dir().join("wldmanip.json");
-    cfg_path
+
+    proj_dir.config_dir().join("wldmanip.json")
 }
 
 /// World data without the tiles
@@ -106,7 +106,7 @@ async fn main() -> anyhow::Result<()> {
             if let Some(tex) = &map_tex {
                 let header = &world_base.header;
                 draw_texture_ex(
-                    &tex,
+                    tex,
                     cam_x,
                     cam_y,
                     WHITE,
@@ -142,11 +142,10 @@ async fn main() -> anyhow::Result<()> {
                     ui.horizontal(|ui| {
                         ui.menu_button("File", |ui| {
                             if ui.button("Open").clicked() {
-                                if let Some(path) = rfd::FileDialog::new().pick_file() {
-                                    if load_world(&path, &mut world_base, &mut tiles, &mut map_tex)
-                                    {
-                                        cfg.recent_files.use_(path);
-                                    }
+                                if let Some(path) = rfd::FileDialog::new().pick_file()
+                                    && load_world(&path, &mut world_base, &mut tiles, &mut map_tex)
+                                {
+                                    cfg.recent_files.use_(path);
                                 }
                                 ui.close_menu();
                             }
@@ -421,18 +420,15 @@ fn guid_to_hex(guid: &[u8; 16]) -> String {
 
     let mut s = String::new();
     for byte in guid {
-        write!(&mut s, "{:02x}", byte).unwrap();
+        write!(&mut s, "{byte:02x}").unwrap();
     }
     s
 }
 
 fn load_tiles(file: &File, base_header: &BaseHeader, header: &Header) -> (Vec<Tile>, Image) {
     let mut tiles = vec![Tile::default(); header.width as usize * header.height as usize];
-    let mut image = Image::gen_image_color(
-        header.width as u16,
-        header.height as u16,
-        Color::from_rgba(0, 0, 0, 0),
-    );
+    let mut image =
+        Image::gen_image_color(header.width, header.height, Color::from_rgba(0, 0, 0, 0));
     let mut n_read = 0;
     terraria_wld::read_tiles(file, base_header, |tile, x, y| {
         tiles[y as usize * header.width as usize + x as usize] = tile;
@@ -475,7 +471,7 @@ fn load_world(
         }
         Err(e) => {
             rfd::MessageDialog::new()
-                .set_description(&e.to_string())
+                .set_description(e.to_string())
                 .show();
             false
         }
@@ -492,7 +488,7 @@ fn tile_color(tile: &Tile) -> Option<Color> {
             4 => RED,
             5 => BROWN,
             // Iron/copper/etc
-            6 | 7 | 8 | 9 => ORANGE,
+            6..=9 => ORANGE,
             // Platform
             19 => BROWN,
             // Pots
@@ -522,7 +518,7 @@ fn tile_color(tile: &Tile) -> Option<Color> {
             // Jungle vine
             62 => DARKGREEN,
             // Glowing mushroom stuff
-            70 | 71 | 72 => Color::from_rgba(56, 230, 255, 255),
+            70..=72 => Color::from_rgba(56, 230, 255, 255),
             // Hallowed grass
             109 => Color::from_rgba(135, 234, 193, 255),
             // Hallowed vine

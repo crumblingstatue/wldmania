@@ -107,7 +107,7 @@ pub fn read_chests(mut f: &File, offset: u64) -> Result<Vec<Chest>, Box<dyn Erro
     let n_chests = f.read_i16::<LE>()?;
     let items_per_chest = f.read_i16::<LE>()?;
     if items_per_chest != ITEMS_PER_CHEST {
-        return Err(format!("Unsupported items per chest: {}", items_per_chest).into());
+        return Err(format!("Unsupported items per chest: {items_per_chest}").into());
     }
     let mut chests = Vec::new();
     for _ in 0..n_chests {
@@ -275,7 +275,7 @@ fn read_tile(mut file: &File, tile_frame_important: &[u8]) -> io::Result<(Tile, 
         0 => {}
         1 => rle = file.read_u8()? as u16,
         2 => rle = file.read_u16::<LE>()?,
-        etc => println!("Invalid rle flag ({})", etc),
+        etc => println!("Invalid rle flag ({etc})"),
     }
     Ok((
         Tile {
@@ -349,13 +349,13 @@ fn read_base_header(mut f: &File) -> Result<BaseHeader, Box<dyn Error>> {
     }
     let filetype = f.read_u8()?;
     if filetype != 2 {
-        return Err(format!("Unsupported filetype: {}", filetype).into());
+        return Err(format!("Unsupported filetype: {filetype}").into());
     }
     let times_saved = f.read_u32::<LE>()?;
     let is_favorite = f.read_u64::<LE>()?;
     let n_offsets = f.read_u16::<LE>()?;
     if n_offsets != 11 {
-        return Err(format!("Unsupported number of offsets: {}", n_offsets).into());
+        return Err(format!("Unsupported number of offsets: {n_offsets}").into());
     }
     let header = f.read_i32::<LE>()?;
     let tiles = f.read_i32::<LE>()?;

@@ -60,7 +60,7 @@ fn parse_only_in(seg: &str) -> Result<Segment, Box<dyn Error>> {
         let name = name.trim();
         match chest_type_from_name(name) {
             Some(type_) => only_in.push(type_),
-            None => return Err(format!("Invalid chest type: {}", name).into()),
+            None => return Err(format!("Invalid chest type: {name}").into()),
         }
     }
     Ok(Segment::OnlyIn(only_in))
@@ -92,7 +92,7 @@ impl<Tracker: Default> Requirement<Tracker> {
             let first_space = line.find(' ').ok_or("Expected space after *Prefix")?;
             let prefix = &line[1..first_space];
             prefix_id = crate::prefix_names::id_by_name(prefix)
-                .ok_or_else(|| format!("Invalid prefix: {}", prefix))?;
+                .ok_or_else(|| format!("Invalid prefix: {prefix}"))?;
             &line[first_space + 1..]
         } else {
             prefix_id = 0;

@@ -134,7 +134,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 
 fn main() {
     if let Err(e) = run() {
-        eprintln!("Error: {}", e);
+        eprintln!("Error: {e}");
     }
 }
 
@@ -150,7 +150,7 @@ fn chest_info(wld_path: &Path, x: u16, y: u16) -> Result<(), Box<dyn Error>> {
                 if item.stack > 0 {
                     print!("{} ", item.stack);
                     match ids.name_by_id(item.id as u16) {
-                        Some(name) => println!("{}", name),
+                        Some(name) => println!("{name}"),
                         None => println!("Unknown({})", item.id),
                     }
                 }
@@ -158,7 +158,7 @@ fn chest_info(wld_path: &Path, x: u16, y: u16) -> Result<(), Box<dyn Error>> {
             return Ok(());
         }
     }
-    println!("No chest at {}, {}", x, y);
+    println!("No chest at {x}, {y}");
     Ok(())
 }
 
@@ -233,7 +233,7 @@ where
             req.tracker = 0;
         }
     }
-    println!("{} worlds in total meet the requirements.", n_meet_reqs);
+    println!("{n_meet_reqs} worlds in total meet the requirements.");
     Ok(())
 }
 
@@ -241,7 +241,7 @@ fn find_item(world_path: &Path, name: &str) -> Result<(), Box<dyn Error>> {
     let ids = terraria_strings::item_ids();
     let id = ids
         .id_by_name(name)
-        .ok_or_else(|| format!("No matching id found for item '{}'", name))?;
+        .ok_or_else(|| format!("No matching id found for item '{name}'"))?;
     let (file, base_header) = terraria_wld::open(world_path, false)?;
     let header = terraria_wld::read_header(&file, base_header.offsets.header as u64)?;
     let chests = terraria_wld::read_chests(&file, base_header.offsets.chests as u64)?;
@@ -249,7 +249,7 @@ fn find_item(world_path: &Path, name: &str) -> Result<(), Box<dyn Error>> {
         for item in &chest.items[..] {
             if item.stack != 0 && item.id == i32::from(id) {
                 let pos = header.tile_to_gps_pos(chest.x, chest.y);
-                println!("Found in chest at {}", pos);
+                println!("Found in chest at {pos}");
             }
         }
     }
@@ -307,8 +307,7 @@ fn validate_req_for_bless<T: Default>(reqs: &[req_file::Requirement<T>]) -> Resu
         if req.only_in.is_empty() {
             let name = ids.name_by_id(req.id).unwrap();
             return Err(format!(
-                "You need to specify at least one chest type for {}",
-                name
+                "You need to specify at least one chest type for {name}"
             ));
         }
     }
@@ -367,7 +366,7 @@ fn bless_chests(cfg_path: &Path, world_path: &Path) -> Result<(), Box<dyn Error>
                 Some(idx) => idx,
                 None => {
                     let name = item_ids.name_by_id(req.id).unwrap();
-                    return Err(format!("No chest available for {}", name).into());
+                    return Err(format!("No chest available for {name}").into());
                 }
             };
             let chest = &mut chests[index];
@@ -427,15 +426,12 @@ fn analyze_chests(world_path: &Path) -> Result<(), Box<dyn Error>> {
     println!("{:30}stack total", "name");
     for (k, v) in vec {
         match ids.name_by_id(k as u16) {
-            Some(name) => print!("{:30}", name),
-            None => print!("unknown({:4})                 ", k),
+            Some(name) => print!("{name:30}"),
+            None => print!("unknown({k:4})                 "),
         }
         println!("{:<5} {}", v.stack_count, v.total_count);
     }
-    println!(
-        "{} total chests that contain something",
-        chests_containing_something
-    );
+    println!("{chests_containing_something} total chests that contain something");
     Ok(())
 }
 
@@ -512,36 +508,36 @@ fn count_ores(path: &Path) -> Result<(), Box<dyn Error>> {
         _ => {}
     })?;
     if copper > 0 {
-        println!("copper: {}", copper);
+        println!("copper: {copper}");
     }
     if tin > 0 {
-        println!("tin: {}", tin);
+        println!("tin: {tin}");
     }
     if iron > 0 {
-        println!("iron: {}", iron);
+        println!("iron: {iron}");
     }
     if lead > 0 {
-        println!("lead: {}", lead);
+        println!("lead: {lead}");
     }
     if silver > 0 {
-        println!("silver: {}", silver);
+        println!("silver: {silver}");
     }
     if tungsten > 0 {
-        println!("tungsten: {}", tungsten);
+        println!("tungsten: {tungsten}");
     }
     if gold > 0 {
-        println!("gold: {}", gold);
+        println!("gold: {gold}");
     }
     if platinum > 0 {
-        println!("platinum: {}", platinum);
+        println!("platinum: {platinum}");
     }
     println!("=============");
-    println!("ametyhst: {}", amethyst);
-    println!("topaz: {}", topaz);
-    println!("sapphire: {}", sapphire);
-    println!("emerald: {}", emerald);
-    println!("ruby: {}", ruby);
-    println!("diamond: {}", diamond);
-    println!("amber: {}", amber);
+    println!("ametyhst: {amethyst}");
+    println!("topaz: {topaz}");
+    println!("sapphire: {sapphire}");
+    println!("emerald: {emerald}");
+    println!("ruby: {ruby}");
+    println!("diamond: {diamond}");
+    println!("amber: {amber}");
     Ok(())
 }
