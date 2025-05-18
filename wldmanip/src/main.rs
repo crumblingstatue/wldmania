@@ -1,5 +1,3 @@
-#![feature(decl_macro)]
-
 use std::{
     fs::File,
     ops::Add,
@@ -60,6 +58,18 @@ struct WorldBase {
     header: Header,
     chests: Vec<Chest>,
     file: File,
+}
+
+macro_rules! field_macro {
+    ($ui:expr, $macname:ident) => {
+        macro_rules! $macname {
+            ($name:expr, $val:expr) => {{
+                $ui.label($name);
+                $ui.label($val.to_string());
+                $ui.end_row();
+            }};
+        }
+    };
 }
 
 #[macroquad::main("egui with macroquad")]
@@ -405,14 +415,6 @@ fn rect_contains_point<T: PartialOrd + Add<Output = T> + Copy>(
     py: T,
 ) -> bool {
     px >= rx && py >= ry && px < rx + rw && py < ry + rh
-}
-
-macro field_macro($ui:expr, $macname:ident) {
-    macro $macname($name:expr, $val:expr) {{
-        $ui.label($name);
-        $ui.label($val.to_string());
-        $ui.end_row();
-    }}
 }
 
 fn guid_to_hex(guid: &[u8; 16]) -> String {
