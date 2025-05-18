@@ -1,13 +1,13 @@
 [package]
 name = "wldmanip"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 anyhow = "1.0.56"
-directories = "5.0.1"
+directories = "6"
 egui-macroquad = { git = "https://github.com/crumblingstatue/egui-macroquad.git" }
 rfd = { version = "0.15.0", default-features = false, features = ["gtk3"] }
 serde = { version = "1.0.136", features = ["derive"] }

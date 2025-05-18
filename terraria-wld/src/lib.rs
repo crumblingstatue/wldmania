@@ -1,4 +1,4 @@
-use byteorder::{ReadBytesExt, WriteBytesExt, LE};
+use byteorder::{LE, ReadBytesExt, WriteBytesExt};
 use std::collections::HashMap;
 use std::error::Error;
 use std::fmt;

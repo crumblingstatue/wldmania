@@ -8,8 +8,9 @@ use std::{
 
 use directories::ProjectDirs;
 use egui_macroquad::{
+    EguiMqInteg,
     egui::{Grid, ScrollArea, Spinner, TopBottomPanel, Window},
-    macroquad, EguiMqInteg,
+    macroquad,
 };
 
 use macroquad::prelude::*;

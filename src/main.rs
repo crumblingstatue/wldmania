@@ -1,6 +1,6 @@
 use ansi_term::Colour::{Green, Red};
 use clap::Parser;
-use rand::{rngs::ThreadRng, seq::SliceRandom, thread_rng, Rng};
+use rand::{Rng, rngs::ThreadRng, seq::SliceRandom, thread_rng};
 use std::collections::HashMap;
 use std::error::Error;
 use std::fs::File;
