@@ -1,6 +1,6 @@
 use ansi_term::Colour::{Green, Red};
 use clap::Parser;
-use rand::{Rng, rngs::ThreadRng, seq::SliceRandom, thread_rng};
+use rand::{Rng, rngs::ThreadRng, seq::SliceRandom};
 use std::collections::HashMap;
 use std::error::Error;
 use std::fs::File;
@@ -292,7 +292,7 @@ fn place_in_chest(
             item.stack = if min_stack == 1 && max_stack == 1 {
                 1
             } else {
-                rng.gen_range(min_stack..max_stack)
+                rng.random_range(min_stack..max_stack)
             };
             item.id = id;
             item.prefix_id = prefix;
@@ -333,7 +333,7 @@ fn bless_chests(cfg_path: &Path, world_path: &Path) -> Result<(), Box<dyn Error>
     let mut chests = terraria_wld::read_chests(&file, base_header.offsets.chests as u64)?;
     let header = terraria_wld::read_header(&file, base_header.offsets.header as u64)?;
     let chest_types = terraria_wld::read_chest_types(&file, &base_header)?;
-    let mut rng = thread_rng();
+    let mut rng = rand::rng();
     let chest_indexes = 0..chests.len();
     for req in &mut reqs {
         // Decrease stack count for every item that already exists in the world
