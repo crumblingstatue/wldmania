@@ -5,6 +5,7 @@ use std::{
 };
 
 use directories::ProjectDirs;
+use egui_file_dialog::FileDialog;
 use egui_macroquad::{
     EguiMqInteg,
     egui::{Grid, ScrollArea, Spinner, TopBottomPanel, Window},
@@ -107,6 +108,7 @@ async fn main() -> anyhow::Result<()> {
     let mut selected_chest = None;
     let item_id_map = terraria_strings::item_ids();
     let mut egui_mq = EguiMqInteg::new();
+    let mut file_dia = FileDialog::new();
     loop {
         clear_background(BLACK);
 
@@ -152,11 +154,7 @@ async fn main() -> anyhow::Result<()> {
                     ui.horizontal(|ui| {
                         ui.menu_button("File", |ui| {
                             if ui.button("Open").clicked() {
-                                if let Some(path) = rfd::FileDialog::new().pick_file()
-                                    && load_world(&path, &mut world_base, &mut tiles, &mut map_tex)
-                                {
-                                    cfg.recent_files.use_(path);
-                                }
+                                file_dia.pick_file();
                                 ui.close_menu();
                             }
                             ui.separator();
@@ -191,6 +189,12 @@ async fn main() -> anyhow::Result<()> {
                         });
                     });
                 });
+                file_dia.update(egui_ctx);
+                if let Some(path) = file_dia.take_picked()
+                    && load_world(&path, &mut world_base, &mut tiles, &mut map_tex)
+                {
+                    cfg.recent_files.use_(path);
+                }
                 if let Some(world_base) = &mut world_base {
                     Window::new("World").show(egui_ctx, |ui| {
                         ScrollArea::vertical().show(ui, |ui| {
@@ -472,9 +476,7 @@ fn load_world(
             true
         }
         Err(e) => {
-            rfd::MessageDialog::new()
-                .set_description(e.to_string())
-                .show();
+            eprintln!("Error loading world: {e}");
             false
         }
     }
