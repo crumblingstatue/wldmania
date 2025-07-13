@@ -155,7 +155,6 @@ async fn main() -> anyhow::Result<()> {
                         ui.menu_button("File", |ui| {
                             if ui.button("Open").clicked() {
                                 file_dia.pick_file();
-                                ui.close_menu();
                             }
                             ui.separator();
                             let mut used = None;
@@ -169,7 +168,6 @@ async fn main() -> anyhow::Result<()> {
                                             &mut map_tex,
                                         );
                                         used = Some(recent.to_owned());
-                                        ui.close_menu();
                                         break;
                                     }
                                 }
