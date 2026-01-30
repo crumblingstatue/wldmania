@@ -30,10 +30,18 @@ enum Args {
         #[clap(required = true)]
         world_paths: Vec<PathBuf>,
     },
-    /// Find an item in the world
+    /// Find an item in the world by name
     Find {
         /// Name of the item to find
         item_name: String,
+        /// Paths to terraria .wld files to search
+        #[clap(required = true)]
+        world_paths: Vec<PathBuf>,
+    },
+    /// Find an item in the world by ID
+    FindId {
+        /// ID of the item to find
+        item_id: u16,
         /// Paths to terraria .wld files to search
         #[clap(required = true)]
         world_paths: Vec<PathBuf>,
@@ -99,7 +107,15 @@ fn run() -> Result<(), Box<dyn Error>> {
             item_name,
         } => {
             for path in world_paths {
-                find_item(&path, &item_name)?;
+                find_item_by_name(&path, &item_name)?;
+            }
+        }
+        Args::FindId {
+            world_paths,
+            item_id,
+        } => {
+            for path in world_paths {
+                find_item_by_id(&path, item_id)?;
             }
         }
         Args::FixNpcs { world_paths } => {
@@ -237,11 +253,15 @@ where
     Ok(())
 }
 
-fn find_item(world_path: &Path, name: &str) -> Result<(), Box<dyn Error>> {
+fn find_item_by_name(world_path: &Path, name: &str) -> Result<(), Box<dyn Error>> {
     let ids = terraria_strings::item_ids();
     let id = ids
         .id_by_name(name)
         .ok_or_else(|| format!("No matching id found for item '{name}'"))?;
+    find_item_by_id(world_path, id)
+}
+
+fn find_item_by_id(world_path: &Path, id: u16) -> Result<(), Box<dyn Error>> {
     let (file, base_header) = terraria_wld::open(world_path, false)?;
     let header = terraria_wld::read_header(&file, base_header.offsets.header as u64)?;
     let chests = terraria_wld::read_chests(&file, base_header.offsets.chests as u64)?;
