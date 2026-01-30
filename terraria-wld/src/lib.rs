@@ -105,10 +105,6 @@ pub fn read_chest_types(
 pub fn read_chests(mut f: &File, offset: u64) -> Result<Vec<Chest>, Box<dyn Error>> {
     f.seek(SeekFrom::Start(offset))?;
     let n_chests = f.read_i16::<LE>()?;
-    let items_per_chest = f.read_i16::<LE>()?;
-    if items_per_chest != ITEMS_PER_CHEST {
-        return Err(format!("Unsupported items per chest: {items_per_chest}").into());
-    }
     let mut chests = Vec::new();
     for _ in 0..n_chests {
         chests.push(Chest::read(f)?);
@@ -148,13 +144,15 @@ pub fn write_chests(
     base_header.write(file)?;
     Ok(())
 }
-fn write_chests_inner(mut f: &File, chests: &[Chest]) -> Result<(), Box<dyn Error>> {
-    f.write_i16::<LE>(chests.len() as i16)?;
-    f.write_i16::<LE>(ITEMS_PER_CHEST)?;
+fn write_chests_inner(_f: &File, _chests: &[Chest]) -> Result<(), Box<dyn Error>> {
+    // TODO: Format change
+    unimplemented!();
+    /*f.write_i16::<LE>(chests.len() as i16)?;
+    //f.write_i16::<LE>(ITEMS_PER_CHEST)?;
     for chest in chests {
         chest.write(f)?;
     }
-    Ok(())
+    Ok(())*/
 }
 /// New, more accurate version
 pub fn read_tiles<TC>(
@@ -392,7 +390,6 @@ fn read_base_header(mut f: &File) -> Result<BaseHeader, Box<dyn Error>> {
     })
 }
 
-const ITEMS_PER_CHEST: i16 = 40;
 const OFFSET_TABLE_OFFSET: u64 = 0x1A;
 
 trait Bits {
@@ -560,13 +557,11 @@ pub enum YSide {
     BelowSurface,
 }
 
-const CHEST_MAX_ITEMS: i8 = 40;
-
 pub struct Chest {
     pub x: u16,
     pub y: u16,
     pub name: String,
-    pub items: [Item; CHEST_MAX_ITEMS as usize],
+    pub items: Vec<Item>,
 }
 
 impl Chest {
@@ -574,7 +569,8 @@ impl Chest {
         let x = f.read_i32::<LE>()? as u16;
         let y = f.read_i32::<LE>()? as u16;
         let name = read_string(f)?;
-        let mut items = [Item::default(); CHEST_MAX_ITEMS as usize];
+        let max_items = f.read_u32::<LE>()?;
+        let mut items = vec![Item::default(); max_items as usize];
         for item in &mut items[..] {
             *item = Item::read(f)?;
         }
