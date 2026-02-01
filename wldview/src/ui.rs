@@ -33,6 +33,7 @@ pub struct UiState {
     pub hide_ui: bool,
     file_dia: FileDialog,
     chests_window: bool,
+    chest_filter: String,
 }
 
 pub fn egui_ui(
@@ -202,8 +203,29 @@ pub fn egui_ui(
         egui::Window::new("Chests")
             .open(&mut ui_state.chests_window)
             .show(egui_ctx, |ui| {
+                ui.add(
+                    egui::TextEdit::singleline(&mut ui_state.chest_filter)
+                        .hint_text("Item name or id"),
+                );
+                let contains_id_filter = if ui_state.chest_filter.is_empty() {
+                    None
+                } else {
+                    match ui_state.chest_filter.parse::<u16>() {
+                        Ok(id) => Some(id),
+                        Err(_) => world
+                            .item_id_map
+                            .id_by_name(&ui_state.chest_filter)
+                            .map(|id| id),
+                    }
+                };
                 egui::ScrollArea::vertical().show(ui, |ui| {
                     for (i, chest) in world_base.chests.iter().enumerate() {
+                        // Skip filtered chests
+                        if let Some(id) = contains_id_filter
+                            && !chest.items.iter().any(|item| item.id == id as i32)
+                        {
+                            continue;
+                        }
                         let name = if chest.name.is_empty() {
                             "<unnamed>"
                         } else {
