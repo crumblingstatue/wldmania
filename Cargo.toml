@@ -13,3 +13,7 @@ terraria-strings = { path = "terraria-strings" }
 
 [workspace]
 members = ["terraria-wld", "terraria-strings", "wldmanip"]
+
+[profile.dev]
+debug = "line-tables-only"
+opt-level = 1
