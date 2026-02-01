@@ -1,4 +1,4 @@
-use byteorder::{LE, ReadBytesExt, WriteBytesExt};
+use byteorder::{LE, ReadBytesExt};
 use std::collections::HashMap;
 use std::error::Error;
 use std::fmt;
@@ -31,9 +31,9 @@ pub struct Rect {
     pub bottom: i32,
 }
 
-pub fn open(path: &Path, write: bool) -> Result<(File, BaseHeader), Box<dyn Error>> {
+pub fn open(path: &Path) -> Result<(File, BaseHeader), Box<dyn Error>> {
     use std::fs::OpenOptions;
-    let file = OpenOptions::new().read(true).write(write).open(path)?;
+    let file = OpenOptions::new().read(true).open(path)?;
     let base_header = read_base_header(&file)?;
     Ok((file, base_header))
 }
@@ -111,49 +111,7 @@ pub fn read_chests(mut f: &File, offset: u64) -> Result<Vec<Chest>, Box<dyn Erro
     }
     Ok(chests)
 }
-pub fn write_npcs(mut f: &File, offset: u64, npcs: &[Npc]) -> Result<(), Box<dyn Error>> {
-    f.seek(SeekFrom::Start(offset))?;
-    for npc in npcs {
-        write_npc(f, npc)?;
-    }
-    Ok(())
-}
-pub fn write_chests(
-    mut file: &File,
-    base_header: &mut BaseHeader,
-    chests: &[Chest],
-) -> Result<(), Box<dyn Error>> {
-    // Save the contents after chests into a buffer to write back later
-    file.seek(SeekFrom::Start(base_header.offsets.signs as u64))?;
-    let mut rest_buf = Vec::new();
-    file.read_to_end(&mut rest_buf)?;
-    file.seek(SeekFrom::Start(base_header.offsets.chests as u64))?;
-    write_chests_inner(file, chests)?;
-    let new_signs_offset = file.stream_position()?;
-    // Write back everything after chests
-    file.write_all(&rest_buf)?;
-    let offs_diff = new_signs_offset as i32 - base_header.offsets.signs;
-    file.seek(SeekFrom::Start(OFFSET_TABLE_OFFSET))?;
-    base_header.offsets.signs += offs_diff;
-    base_header.offsets.npcs += offs_diff;
-    base_header.offsets.entities += offs_diff;
-    base_header.offsets.footer += offs_diff;
-    base_header.offsets.unused_1 += offs_diff;
-    base_header.offsets.unused_2 += offs_diff;
-    base_header.offsets.unused_3 += offs_diff;
-    base_header.write(file)?;
-    Ok(())
-}
-fn write_chests_inner(_f: &File, _chests: &[Chest]) -> Result<(), Box<dyn Error>> {
-    // TODO: Format change
-    unimplemented!();
-    /*f.write_i16::<LE>(chests.len() as i16)?;
-    //f.write_i16::<LE>(ITEMS_PER_CHEST)?;
-    for chest in chests {
-        chest.write(f)?;
-    }
-    Ok(())*/
-}
+
 /// New, more accurate version
 pub fn read_tiles<TC>(
     mut file: &File,
@@ -321,23 +279,6 @@ pub struct Offsets {
     pub unknown_4: i32,
 }
 
-impl BaseHeader {
-    fn write(&self, mut f: &File) -> Result<(), io::Error> {
-        f.write_i32::<LE>(self.offsets.header)?;
-        f.write_i32::<LE>(self.offsets.tiles)?;
-        f.write_i32::<LE>(self.offsets.chests)?;
-        f.write_i32::<LE>(self.offsets.signs)?;
-        f.write_i32::<LE>(self.offsets.npcs)?;
-        f.write_i32::<LE>(self.offsets.entities)?;
-        f.write_i32::<LE>(self.offsets.footer)?;
-        f.write_i32::<LE>(self.offsets.unused_1)?;
-        f.write_i32::<LE>(self.offsets.unused_2)?;
-        f.write_i32::<LE>(self.offsets.unused_3)?;
-        f.write_i32::<LE>(self.offsets.unknown_4)?;
-        Ok(())
-    }
-}
-
 fn read_base_header(mut f: &File) -> Result<BaseHeader, Box<dyn Error>> {
     let terraria_version = f.read_i32::<LE>()?;
     let mut magic = [0u8; 7];
@@ -389,8 +330,6 @@ fn read_base_header(mut f: &File) -> Result<BaseHeader, Box<dyn Error>> {
         version: terraria_version,
     })
 }
-
-const OFFSET_TABLE_OFFSET: u64 = 0x1A;
 
 trait Bits {
     type Index;
@@ -576,15 +515,6 @@ impl Chest {
         }
         Ok(Self { x, y, name, items })
     }
-    fn write(&self, mut f: &File) -> io::Result<()> {
-        f.write_i32::<LE>(i32::from(self.x))?;
-        f.write_i32::<LE>(i32::from(self.y))?;
-        write_string(f, &self.name)?;
-        for item in self.items.iter() {
-            item.write(f)?;
-        }
-        Ok(())
-    }
 }
 
 fn read_string(mut f: &File) -> io::Result<String> {
@@ -592,16 +522,6 @@ fn read_string(mut f: &File) -> io::Result<String> {
     let mut buf = vec![0u8; len];
     f.read_exact(&mut buf)?;
     Ok(String::from_utf8_lossy(&buf).into_owned())
-}
-
-fn write_string(mut f: &File, string: &str) -> io::Result<()> {
-    let len = string.len();
-    // Can't bother with that whole encoding bullshit. Just simply write the length value,
-    // bail if it's larger than 127.
-    assert!(len < 127);
-    f.write_u8(len as u8)?;
-    f.write_all(string.as_bytes())?;
-    Ok(())
 }
 
 fn read_string_len(mut f: &File) -> io::Result<usize> {
@@ -640,14 +560,6 @@ impl Item {
             })
         }
     }
-    fn write(&self, mut f: &File) -> io::Result<()> {
-        f.write_u16::<LE>(self.stack)?;
-        if self.stack != 0 {
-            f.write_i32::<LE>(self.id)?;
-            f.write_u8(self.prefix_id)?;
-        }
-        Ok(())
-    }
 }
 
 fn read_npc(mut f: &File) -> io::Result<Option<Npc>> {
@@ -671,18 +583,6 @@ fn read_npc(mut f: &File) -> io::Result<Option<Npc>> {
         home_x,
         home_y,
     }))
-}
-
-fn write_npc(mut f: &File, npc: &Npc) -> io::Result<()> {
-    f.write_u8(1)?;
-    f.write_i32::<LE>(npc.sprite)?;
-    write_string(f, &npc.name)?;
-    f.write_f32::<LE>(npc.x)?;
-    f.write_f32::<LE>(npc.y)?;
-    f.write_u8(if npc.homeless { 1 } else { 0 })?;
-    f.write_i32::<LE>(npc.home_x)?;
-    f.write_i32::<LE>(npc.home_y)?;
-    Ok(())
 }
 
 pub struct Npc {

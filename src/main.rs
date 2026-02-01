@@ -1,6 +1,5 @@
 use ansi_term::Colour::{Green, Red};
 use clap::Parser;
-use rand::{Rng, rngs::ThreadRng, seq::SliceRandom};
 use std::collections::HashMap;
 use std::error::Error;
 use std::fs::File;
@@ -22,14 +21,6 @@ enum Args {
         #[clap(required = true)]
         world_paths: Vec<PathBuf>,
     },
-    /// Bless the chests in the world with the desired items
-    BlessChests {
-        /// File containing the list of desired items
-        req_path: PathBuf,
-        /// Paths to terraria .wld files to search
-        #[clap(required = true)]
-        world_paths: Vec<PathBuf>,
-    },
     /// Find an item in the world by name
     Find {
         /// Name of the item to find
@@ -43,12 +34,6 @@ enum Args {
         /// ID of the item to find
         item_id: u16,
         /// Paths to terraria .wld files to search
-        #[clap(required = true)]
-        world_paths: Vec<PathBuf>,
-    },
-    /// Fix NPCs that disappeared due to the NaN position bug.
-    FixNpcs {
-        /// Paths to terraria .wld files to fix
         #[clap(required = true)]
         world_paths: Vec<PathBuf>,
     },
@@ -94,14 +79,6 @@ fn run() -> Result<(), Box<dyn Error>> {
         } => {
             itemhunt(&req_path, &world_paths)?;
         }
-        Args::BlessChests {
-            req_path,
-            world_paths,
-        } => {
-            for world in world_paths {
-                bless_chests(&req_path, &world)?;
-            }
-        }
         Args::Find {
             world_paths,
             item_name,
@@ -116,11 +93,6 @@ fn run() -> Result<(), Box<dyn Error>> {
         } => {
             for path in world_paths {
                 find_item_by_id(&path, item_id)?;
-            }
-        }
-        Args::FixNpcs { world_paths } => {
-            for path in world_paths {
-                fix_npcs(&path)?;
             }
         }
         Args::AnalyzeChests { world_paths } => {
@@ -155,7 +127,7 @@ fn main() {
 }
 
 fn chest_info(wld_path: &Path, x: u16, y: u16) -> Result<(), Box<dyn Error>> {
-    let (file, base_header) = terraria_wld::open(wld_path, false)?;
+    let (file, base_header) = terraria_wld::open(wld_path)?;
     let chests = terraria_wld::read_chests(&file, base_header.offsets.chests as u64)?;
     let chest_types = terraria_wld::read_chest_types(&file, &base_header)?;
     let ids = terraria_strings::item_ids();
@@ -206,7 +178,7 @@ where
     for world_path in world_paths {
         let world_path = world_path.as_ref();
         eprintln!("{}:", world_path.display());
-        let (file, base_header) = terraria_wld::open(world_path, false)?;
+        let (file, base_header) = terraria_wld::open(world_path)?;
         let header = terraria_wld::read_header(&file, base_header.offsets.header as u64)?;
         let chests = terraria_wld::read_chests(&file, base_header.offsets.chests as u64)?;
         for chest in &chests[..] {
@@ -262,7 +234,7 @@ fn find_item_by_name(world_path: &Path, name: &str) -> Result<(), Box<dyn Error>
 }
 
 fn find_item_by_id(world_path: &Path, id: u16) -> Result<(), Box<dyn Error>> {
-    let (file, base_header) = terraria_wld::open(world_path, false)?;
+    let (file, base_header) = terraria_wld::open(world_path)?;
     let header = terraria_wld::read_header(&file, base_header.offsets.header as u64)?;
     let chests = terraria_wld::read_chests(&file, base_header.offsets.chests as u64)?;
     for chest in &chests[..] {
@@ -276,136 +248,8 @@ fn find_item_by_id(world_path: &Path, id: u16) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn fix_npcs(world_path: &Path) -> Result<(), Box<dyn Error>> {
-    let (file, base_header) = terraria_wld::open(world_path, true)?;
-    let header = terraria_wld::read_header(&file, base_header.offsets.header as u64)?;
-    let mut npcs = terraria_wld::read_npcs(&file, base_header.offsets.npcs as u64)?;
-    let mut fixed_any = false;
-    for npc in &mut npcs {
-        if npc.x.is_nan() || npc.y.is_nan() {
-            // TODO: Need proper conversion from tile to entity coordinates.
-            // Try multiplying by 16.
-            npc.x = header.spawn_x as f32 * 16.;
-            npc.y = header.spawn_y as f32 * 16.;
-            fixed_any = true;
-            println!("{} has NaN position, reset to spawn.", npc.name);
-        }
-    }
-    if fixed_any {
-        terraria_wld::write_npcs(&file, base_header.offsets.npcs as u64, &npcs)?;
-    } else {
-        println!("No NPCs needed fixing.");
-    }
-    Ok(())
-}
-
-fn place_in_chest(
-    chest: &mut terraria_wld::Chest,
-    id: i32,
-    prefix: u8,
-    min_stack: u16,
-    max_stack: u16,
-    rng: &mut ThreadRng,
-) {
-    for item in chest.items.iter_mut() {
-        if item.stack == 0 {
-            item.stack = if min_stack == 1 && max_stack == 1 {
-                1
-            } else {
-                rng.random_range(min_stack..max_stack)
-            };
-            item.id = id;
-            item.prefix_id = prefix;
-            return;
-        }
-    }
-}
-
-fn validate_req_for_bless<T: Default>(reqs: &[req_file::Requirement<T>]) -> Result<(), String> {
-    let ids = terraria_strings::item_ids();
-    for req in reqs {
-        if req.only_in.is_empty() {
-            let name = ids.name_by_id(req.id).unwrap();
-            return Err(format!(
-                "You need to specify at least one chest type for {name}"
-            ));
-        }
-    }
-    Ok(())
-}
-
-fn bless_chests(cfg_path: &Path, world_path: &Path) -> Result<(), Box<dyn Error>> {
-    let item_ids = terraria_strings::item_ids();
-    struct Tracker {
-        acceptable_chest_indexes: Box<dyn Iterator<Item = usize>>,
-    }
-    impl Default for Tracker {
-        fn default() -> Self {
-            Self {
-                acceptable_chest_indexes: Box::new(::std::iter::empty()),
-            }
-        }
-    }
-    let mut reqs = req_file::from_path::<Tracker>(cfg_path, &item_ids)?;
-    validate_req_for_bless(&reqs)?;
-    let (file, mut base_header) = terraria_wld::open(world_path, true)?;
-    let mut chests = terraria_wld::read_chests(&file, base_header.offsets.chests as u64)?;
-    let header = terraria_wld::read_header(&file, base_header.offsets.header as u64)?;
-    let chest_types = terraria_wld::read_chest_types(&file, &base_header)?;
-    let mut rng = rand::rng();
-    let chest_indexes = 0..chests.len();
-    for req in &mut reqs {
-        // Decrease stack count for every item that already exists in the world
-        for chest in &chests[..] {
-            if is_inaccessible(chest.x, chest.y, &header) {
-                continue;
-            }
-            for item in &chest.items[..] {
-                if item.stack != 0 && item.id == i32::from(req.id) && req.n_stacks > 0 {
-                    req.n_stacks -= 1;
-                }
-            }
-        }
-        // Set up chest indexes to place the item in. Might be only specific chest types.
-        if req.n_stacks > 0 {
-            let mut matching_indexes: Vec<usize> = chest_indexes
-                .clone()
-                .filter(|&idx| {
-                    let chest = &chests[idx];
-                    let type_ = chest_types[&(chest.x, chest.y)];
-                    req.only_in.contains(&type_) && !is_inaccessible(chest.x, chest.y, &header)
-                })
-                .collect();
-            matching_indexes.shuffle(&mut rng);
-            req.tracker.acceptable_chest_indexes = Box::new(matching_indexes.into_iter().cycle())
-        }
-    }
-    for mut req in reqs {
-        for _ in 0..req.n_stacks {
-            let index = match req.tracker.acceptable_chest_indexes.next() {
-                Some(idx) => idx,
-                None => {
-                    let name = item_ids.name_by_id(req.id).unwrap();
-                    return Err(format!("No chest available for {name}").into());
-                }
-            };
-            let chest = &mut chests[index];
-            place_in_chest(
-                chest,
-                i32::from(req.id),
-                req.prefix_id,
-                req.min_per_stack,
-                req.max_per_stack,
-                &mut rng,
-            );
-        }
-    }
-    terraria_wld::write_chests(&file, &mut base_header, &chests)?;
-    Ok(())
-}
-
 fn analyze_chests(world_path: &Path) -> Result<(), Box<dyn Error>> {
-    let (file, base_header) = terraria_wld::open(world_path, false)?;
+    let (file, base_header) = terraria_wld::open(world_path)?;
     let chests = terraria_wld::read_chests(&file, base_header.offsets.chests as u64)?;
     #[derive(Debug)]
     struct ItemStat {
@@ -456,7 +300,7 @@ fn analyze_chests(world_path: &Path) -> Result<(), Box<dyn Error>> {
 }
 
 fn corruption_percent(path: &Path) -> Result<(), Box<dyn Error>> {
-    let (world_file, base_header) = terraria_wld::open(path, false)?;
+    let (world_file, base_header) = terraria_wld::open(path)?;
     let mut total = 0;
     let mut corrupt = 0;
     let mut crimson = 0;
@@ -480,7 +324,7 @@ fn corruption_percent(path: &Path) -> Result<(), Box<dyn Error>> {
 }
 
 fn count_ores(path: &Path) -> Result<(), Box<dyn Error>> {
-    let (world_file, base_header) = terraria_wld::open(path, false)?;
+    let (world_file, base_header) = terraria_wld::open(path)?;
     let mut copper = 0;
     let mut tin = 0;
     let mut iron = 0;

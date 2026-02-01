@@ -48,9 +48,9 @@ impl Config {
 }
 
 fn cfg_path() -> PathBuf {
-    let proj_dir = ProjectDirs::from("", "crumblingstatue", "wldmanip").unwrap();
+    let proj_dir = ProjectDirs::from("", "crumblingstatue", "wldview").unwrap();
 
-    proj_dir.config_dir().join("wldmanip.json")
+    proj_dir.config_dir().join("wldview.json")
 }
 
 /// World data without the tiles
@@ -459,7 +459,7 @@ fn load_world(
     // Reset some stuff when loading new world over an existing one
     tiles.clear();
     *map_tex = None;
-    match terraria_wld::open(path, false) {
+    match terraria_wld::open(path) {
         Ok((file, base_header)) => {
             let header =
                 terraria_wld::read_header(&file, base_header.offsets.header as u64).unwrap();

@@ -12,7 +12,7 @@ terraria-wld = { path = "terraria-wld" }
 terraria-strings = { path = "terraria-strings" }
 
 [workspace]
-members = ["terraria-wld", "terraria-strings", "wldmanip"]
+members = ["terraria-wld", "terraria-strings", "wldview"]
 
 [profile.dev]
 debug = "line-tables-only"

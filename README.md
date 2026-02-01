@@ -1,1 +1,1 @@
-wldmania - Terraria wld inspection/manipulation toolkit
+wldmania - Terraria wld inspection toolkit
