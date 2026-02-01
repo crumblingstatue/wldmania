@@ -1,56 +1,15 @@
 use {
-    directories::ProjectDirs,
+    crate::config::Config,
     egui_file_dialog::FileDialog,
     egui_macroquad::{EguiMqInteg, macroquad},
     macroquad::prelude::*,
-    recently_used_list::RecentlyUsedList,
-    serde::{Deserialize, Serialize},
-    std::{
-        fs::File,
-        ops::Add,
-        path::{Path, PathBuf},
-    },
+    std::{fs::File, ops::Add, path::Path},
     terraria_strings::ItemIdMap,
     terraria_wld::{BaseHeader, Chest, Header, Tile},
 };
 
+mod config;
 mod ui;
-
-#[derive(Serialize, Deserialize, Default)]
-struct Config {
-    recent_files: RecentlyUsedList<PathBuf>,
-    #[serde(default)]
-    load_most_recent: bool,
-    #[serde(default)]
-    draw_center_marker: bool,
-    #[serde(default)]
-    load_tiles_at_start: bool,
-}
-
-impl Config {
-    fn load_or_default() -> anyhow::Result<Self> {
-        let cfg_path = cfg_path();
-        if cfg_path.exists() {
-            let text = std::fs::read_to_string(&cfg_path)?;
-            Ok(serde_json::from_str(&text)?)
-        } else {
-            Ok(Default::default())
-        }
-    }
-    fn save(&self) -> anyhow::Result<()> {
-        std::fs::create_dir_all(cfg_path().parent().unwrap())?;
-        Ok(std::fs::write(
-            cfg_path(),
-            serde_json::to_string_pretty(self)?,
-        )?)
-    }
-}
-
-fn cfg_path() -> PathBuf {
-    let proj_dir = ProjectDirs::from("", "crumblingstatue", "wldview").unwrap();
-
-    proj_dir.config_dir().join("wldview.json")
-}
 
 /// World data without the tiles
 struct WorldBase {
