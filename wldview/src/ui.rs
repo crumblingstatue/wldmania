@@ -25,6 +25,7 @@ pub struct UiState {
     pub loading_tiles: bool,
     pub hide_ui: bool,
     file_dia: FileDialog,
+    chests_window: bool,
 }
 
 pub fn egui_ui(
@@ -61,6 +62,7 @@ pub fn egui_ui(
             });
             ui.menu_button("View", |ui| {
                 ui.checkbox(&mut cfg.draw_center_marker, "Draw center marker");
+                ui.checkbox(&mut ui_state.chests_window, "Chests");
             });
         });
     });
@@ -171,20 +173,44 @@ pub fn egui_ui(
                 chest_name_fmt = format!("Chest: {}", chest.name);
                 &chest_name_fmt
             };
-            egui::Window::new(label).show(egui_ctx, |ui| {
-                for item in &chest.items {
-                    if item.id != 0 {
-                        match world.item_id_map.name_by_id(item.id as u16) {
-                            Some(name) => ui.label(format!("{} x {}", name, item.stack)),
-                            None => {
-                                ui.label(format!("Unknown item ({}) x {}", item.id, item.stack))
-                            }
-                        };
+            egui::Window::new(label)
+                .id("chest_popup".into())
+                .show(egui_ctx, |ui| {
+                    for item in &chest.items {
+                        if item.id != 0 {
+                            match world.item_id_map.name_by_id(item.id as u16) {
+                                Some(name) => ui.label(format!("{} x {}", name, item.stack)),
+                                None => {
+                                    ui.label(format!("Unknown item ({}) x {}", item.id, item.stack))
+                                }
+                            };
+                        }
+                        ui.end_row();
                     }
-                    ui.end_row();
-                }
-            });
+                });
         }
+        egui::Window::new("Chests")
+            .open(&mut ui_state.chests_window)
+            .show(egui_ctx, |ui| {
+                egui::ScrollArea::vertical().show(ui, |ui| {
+                    for (i, chest) in world_base.chests.iter().enumerate() {
+                        let name = if chest.name.is_empty() {
+                            "<unnamed>"
+                        } else {
+                            &chest.name
+                        };
+                        if ui
+                            .selectable_label(
+                                ui_state.selected_chest == Some(i),
+                                format!("{name} at {} {}", chest.x, chest.y),
+                            )
+                            .clicked()
+                        {
+                            ui_state.selected_chest = Some(i);
+                        }
+                    }
+                });
+            });
     }
     ui_state.egui_wants_pointer = egui_ctx.wants_pointer_input();
 }
