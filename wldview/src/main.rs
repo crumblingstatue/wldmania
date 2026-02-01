@@ -84,6 +84,26 @@ struct UiState {
     egui_wants_pointer: bool,
 }
 
+struct ViewerState {
+    cam_x: f32,
+    cam_y: f32,
+    tile_x: f32,
+    tile_y: f32,
+    scale: u8,
+}
+
+impl Default for ViewerState {
+    fn default() -> Self {
+        Self {
+            cam_x: 0.0,
+            cam_y: 0.0,
+            tile_x: 0.0,
+            tile_y: 0.0,
+            scale: 1,
+        }
+    }
+}
+
 #[macroquad::main("egui with macroquad")]
 async fn main() -> anyhow::Result<()> {
     let mut world_base = None;
@@ -97,9 +117,7 @@ async fn main() -> anyhow::Result<()> {
     {
         cfg.recent_files.use_(most_recent);
     }
-    let mut cam_x = 0.0;
-    let mut cam_y = 0.0;
-    let mut scale = 1;
+    let mut viewer = ViewerState::default();
     let (sender, receiver) = std::sync::mpsc::channel();
     let mut ui_state = UiState::default();
     if let Some(world_base) = &world_base
@@ -127,13 +145,13 @@ async fn main() -> anyhow::Result<()> {
                 let header = &world_base.header;
                 draw_texture_ex(
                     tex,
-                    cam_x,
-                    cam_y,
+                    viewer.cam_x,
+                    viewer.cam_y,
                     WHITE,
                     DrawTextureParams {
                         dest_size: Some(vec2(
-                            header.width as f32 * scale as f32,
-                            header.height as f32 * scale as f32,
+                            header.width as f32 * viewer.scale as f32,
+                            header.height as f32 * viewer.scale as f32,
                         )),
                         source: None,
                         rotation: 0.0,
@@ -152,24 +170,21 @@ async fn main() -> anyhow::Result<()> {
         }
 
         let mp = mouse_position();
-        let tile_x = f32::floor(mp.0 / scale as f32 - cam_x / scale as f32);
-        let tile_y = f32::floor(mp.1 / scale as f32 - cam_y / scale as f32);
+        let tile_x = f32::floor(mp.0 / viewer.scale as f32 - viewer.cam_x / viewer.scale as f32);
+        let tile_y = f32::floor(mp.1 / viewer.scale as f32 - viewer.cam_y / viewer.scale as f32);
         ui_state.egui_wants_pointer = false;
 
         if !ui_state.hide_ui {
             egui_mq.ui(|_, egui_ctx| {
                 egui_ui(
                     egui_ctx,
+                    &viewer,
                     &mut ui_state,
                     &mut cfg,
                     &mut world_base,
                     &mut tiles,
                     &mut map_tex,
-                    tile_x,
-                    tile_y,
                     &item_id_map,
-                    cam_x,
-                    cam_y,
                     &sender,
                 );
             });
@@ -200,19 +215,19 @@ async fn main() -> anyhow::Result<()> {
         }
 
         if is_key_pressed(KeyCode::KpAdd) {
-            cam_x *= 2.;
-            cam_x -= screen_width() / 2.;
-            cam_y *= 2.;
-            cam_y -= screen_height() / 2.;
-            scale *= 2;
+            viewer.cam_x *= 2.;
+            viewer.cam_x -= screen_width() / 2.;
+            viewer.cam_y *= 2.;
+            viewer.cam_y -= screen_height() / 2.;
+            viewer.scale *= 2;
         }
 
-        if is_key_pressed(KeyCode::KpSubtract) && scale > 1 {
-            cam_x += screen_width() / 2.;
-            cam_x /= 2.;
-            cam_y += screen_height() / 2.;
-            cam_y /= 2.;
-            scale /= 2;
+        if is_key_pressed(KeyCode::KpSubtract) && viewer.scale > 1 {
+            viewer.cam_x += screen_width() / 2.;
+            viewer.cam_x /= 2.;
+            viewer.cam_y += screen_height() / 2.;
+            viewer.cam_y /= 2.;
+            viewer.scale /= 2;
         }
 
         if !ui_state.egui_wants_pointer && is_mouse_button_pressed(MouseButton::Left) {
@@ -229,27 +244,27 @@ async fn main() -> anyhow::Result<()> {
         let speed = 16.0;
 
         if is_key_down(KeyCode::Left) {
-            cam_x += speed;
+            viewer.cam_x += speed;
         }
         if is_key_down(KeyCode::Right) {
-            cam_x -= speed;
+            viewer.cam_x -= speed;
         }
         if is_key_down(KeyCode::Up) {
-            cam_y += speed;
+            viewer.cam_y += speed;
         }
         if is_key_down(KeyCode::Down) {
-            cam_y -= speed;
+            viewer.cam_y -= speed;
         }
 
         if let Some(world_base) = &world_base {
-            cam_x = clamp(
-                cam_x,
-                -(world_base.header.width as f32 * scale as f32) + screen_width() / 2.,
+            viewer.cam_x = clamp(
+                viewer.cam_x,
+                -(world_base.header.width as f32 * viewer.scale as f32) + screen_width() / 2.,
                 screen_width() / 2.,
             );
-            cam_y = clamp(
-                cam_y,
-                -(world_base.header.height as f32 * scale as f32) + screen_height() / 2.,
+            viewer.cam_y = clamp(
+                viewer.cam_y,
+                -(world_base.header.height as f32 * viewer.scale as f32) + screen_height() / 2.,
                 screen_height() / 2.,
             );
         }
@@ -265,16 +280,13 @@ async fn main() -> anyhow::Result<()> {
 
 fn egui_ui(
     egui_ctx: &egui::Context,
+    view: &ViewerState,
     ui_state: &mut UiState,
     cfg: &mut Config,
     world_base: &mut Option<WorldBase>,
     tiles: &mut Vec<Tile>,
     map_tex: &mut Option<Texture2D>,
-    tile_x: f32,
-    tile_y: f32,
     item_id_map: &ItemIdMap,
-    cam_x: f32,
-    cam_y: f32,
     sender: &Sender<(Vec<Tile>, Image)>,
 ) {
     TopBottomPanel::top("top_panel").show(egui_ctx, |ui| {
@@ -375,9 +387,10 @@ fn egui_ui(
                             )
                         );
                         if let Some(tile) = tiles.get(
-                            tile_y as usize * world_base.header.width as usize + tile_x as usize,
+                            view.tile_y as usize * world_base.header.width as usize
+                                + view.tile_x as usize,
                         ) {
-                            field!("Pointing at", format!("{}, {}", tile_x, tile_y));
+                            field!("Pointing at", format!("{}, {}", view.tile_x, view.tile_y));
                             match tile.front {
                                 Some(id) => field!("Tile", id),
                                 None => field!("Tile", "[none]"),
@@ -396,8 +409,8 @@ fn egui_ui(
                                 }
                             );
                         }
-                        field!("cam x", cam_x);
-                        field!("cam y", cam_y);
+                        field!("cam x", view.cam_x);
+                        field!("cam y", view.cam_y);
                     });
             })
         });
