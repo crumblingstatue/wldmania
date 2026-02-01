@@ -394,6 +394,7 @@ fn tile_color(tile: &Tile) -> Option<Color> {
 }
 
 trait MqVec2Ext {
+    fn to_pix(&self, scale: u8) -> Self;
     fn to_tile(&self, scale: u8) -> Self;
 }
 
@@ -403,6 +404,13 @@ impl MqVec2Ext for Vec2 {
         Self {
             x: f32::floor(self.x / scale),
             y: f32::floor(self.y / scale),
+        }
+    }
+    fn to_pix(&self, scale: u8) -> Self {
+        let scale = scale as f32;
+        Self {
+            x: f32::floor(self.x * scale),
+            y: f32::floor(self.y * scale),
         }
     }
 }

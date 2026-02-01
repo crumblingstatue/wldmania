@@ -1,7 +1,14 @@
 use {
-    crate::{Config, ViewerState, WorldState, load_tiles, load_world},
+    crate::{Config, MqVec2Ext, ViewerState, WorldState, load_tiles, load_world},
     egui_file_dialog::FileDialog,
-    egui_macroquad::{egui, macroquad::texture::Image},
+    egui_macroquad::{
+        egui,
+        macroquad::{
+            math::vec2,
+            texture::Image,
+            window::{screen_height, screen_width},
+        },
+    },
     std::sync::mpsc::Sender,
     terraria_wld::{Chest, Liquid, Tile},
 };
@@ -210,12 +217,23 @@ pub fn egui_ui(
                             .clicked()
                         {
                             ui_state.selected_chest = Some(i);
+                            center_on_chest(view, chest);
                         }
                     }
                 });
             });
     }
     ui_state.egui_wants_pointer = egui_ctx.wants_pointer_input();
+}
+
+fn center_on_chest(view: &mut ViewerState, chest: &Chest) {
+    let pix_pos = vec2(chest.x as f32, chest.y as f32).to_pix(view.scale);
+    view.cam = -pix_pos;
+    view.cam.x += screen_width() / 2.;
+    view.cam.y += screen_height() / 2.;
+    // "Center" on the chest rather than pointing at left top
+    view.cam.x -= view.scale as f32;
+    view.cam.y -= view.scale as f32;
 }
 
 fn game_mode_name(name: i32) -> &'static str {
