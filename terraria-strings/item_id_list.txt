@@ -118,7 +118,7 @@
 118	Hook	Hook
 119	Flamarang	Flamarang
 120	Molten Fury	MoltenFury
-121	Fiery Greatsword	FieryGreatsword
+121	Volcano	FieryGreatsword
 122	Molten Pickaxe	MoltenPickaxe
 123	Meteor Helmet	MeteorHelmet
 124	Meteor Suit	MeteorSuit
@@ -223,7 +223,7 @@
 223	Nature's Gift	NaturesGift
 224	Bed	Bed
 225	Silk	Silk
-226	Lesser Restoration Potion	LesserRestorationPotion
+226	Lesser Restoration Potion (unobtainable/not implemented)	LesserRestorationPotion
 227	Restoration Potion	RestorationPotion
 228	Jungle Hat	JungleHat
 229	Jungle Shirt	JungleShirt
@@ -596,9 +596,9 @@
 596	Blue Light	BlueLight
 597	Red Light	RedLight
 598	Green Light	GreenLight
-599	Blue Present	BluePresent
-600	Green Present	GreenPresent
-601	Yellow Present	YellowPresent
+599	Blue Present (unobtainable/not implemented)	BluePresent
+600	Green Present (unobtainable/not implemented)	GreenPresent
+601	Yellow Present (unobtainable/not implemented)	YellowPresent
 602	Snow Globe	SnowGlobe
 603	Carrot	Carrot
 604	Adamantite Beam	AdamantiteBeam
@@ -1907,7 +1907,7 @@
 1907	Reindeer Antlers	ReindeerAntlers
 1908	Holly	Holly
 1909	Candy Cane Sword	CandyCaneSword
-1910	Elf Melter	EldMelter
+1910	Elf Melter	ElfMelter
 1911	Christmas Pudding	ChristmasPudding
 1912	Eggnog	Eggnog
 1913	Star Anise	StarAnise
@@ -2169,7 +2169,7 @@
 2169	Waterfall Wall	WaterfallWall
 2170	Lavafall Wall	LavafallWall
 2171	Crimson Seeds	CrimsonSeeds
-2172	Heavy Work Bench	HeavyWorkBench
+2172	Heavy Assembler	HeavyWorkBench
 2173	Copper Plating	CopperPlating
 2174	Snail Cage	SnailCage
 2175	Glowing Snail Cage	GlowingSnailCage
@@ -2584,7 +2584,7 @@
 2584	Pirate Staff	PirateStaff
 2585	Slime Hook	SlimeHook
 2586	Sticky Grenade	StickyGrenade
-2587	Tartar Sauce	TartarSauce
+2587	Beguiling Lyre	TartarSauce
 2588	Duke Fishron Mask	DukeFishronMask
 2589	Duke Fishron Trophy	DukeFishronTrophy
 2590	Molotov Cocktail	MolotovCocktail
@@ -2608,7 +2608,7 @@
 2608	Falcon Blade	FalconBlade
 2609	Fishron Wings	FishronWings
 2610	Slime Gun	SlimeGun
-2611	Flairon	Flairon
+2611	Flairoon	Flairon
 2612	Green Dungeon Chest	GreenDungeonChest
 2613	Pink Dungeon Chest	PinkDungeonChest
 2614	Blue Dungeon Chest	BlueDungeonChest
@@ -2769,20 +2769,20 @@
 2769	Cosmic Car Key	CosmicCarKey
 2770	Mothron Wings	MothronWings
 2771	Brain Scrambler	BrainScrambler
-2772	Vortex Axe	VortexAxe
-2773	Vortex Chainsaw	VortexChainsaw
+2772	Vortex Axe (unobtainable/not implemented)	VortexAxe
+2773	Vortex Chainsaw (unobtainable/not implemented)	VortexChainsaw
 2774	Vortex Drill	VortexDrill
-2775	Vortex Hammer	VortexHammer
+2775	Vortex Hammer (unobtainable/not implemented)	VortexHammer
 2776	Vortex Pickaxe	VortexPickaxe
-2777	Nebula Axe	NebulaAxe
-2778	Nebula Chainsaw	NebulaChainsaw
+2777	Nebula Axe (unobtainable/not implemented)	NebulaAxe
+2778	Nebula Chainsaw (unobtainable/not implemented)	NebulaChainsaw
 2779	Nebula Drill	NebulaDrill
-2780	Nebula Hammer	NebulaHammer
+2780	Nebula Hammer (unobtainable/not implemented)	NebulaHammer
 2781	Nebula Pickaxe	NebulaPickaxe
-2782	Solar Flare Axe	SolarFlareAxe
-2783	Solar Flare Chainsaw	SolarFlareChainsaw
+2782	Solar Flare Axe (unobtainable/not implemented)	SolarFlareAxe
+2783	Solar Flare Chainsaw (unobtainable/not implemented)	SolarFlareChainsaw
 2784	Solar Flare Drill	SolarFlareDrill
-2785	Solar Flare Hammer	SolarFlareHammer
+2785	Solar Flare Hammer (unobtainable/not implemented)	SolarFlareHammer
 2786	Solar Flare Pickaxe	SolarFlarePickaxe
 2787	Honeyfall Block	HoneyfallBlock
 2788	Honeyfall Wall	HoneyfallWall
@@ -2878,7 +2878,7 @@
 2878	Wisp Dye	WispDye
 2879	Pixie Dye	PixieDye
 2880	Influx Waver	InfluxWaver
-2881	Phasic Warp Ejector	PhasicWarpEjector
+2881	Phasic Warp Ejector (unobtainable/not implemented)	PhasicWarpEjector
 2882	Charged Blaster Cannon	ChargedBlasterCannon
 2883	Chlorophyte Dye	ChlorophyteDye
 2884	Unicorn Wisp Dye	UnicornWispDye
@@ -2942,7 +2942,7 @@
 2942	Lac Beetle Banner	LacBeetleBanner
 2943	Lava Bat Banner	LavaBatBanner
 2944	Lava Slime Banner	LavaSlimeBanner
-2945	Martian Brainscrambler Banner	MartianBrainscramblerBanner
+2945	Martian Brain Scrambler Banner	MartianBrainscramblerBanner
 2946	Martian Drone Banner	MartianDroneBanner
 2947	Martian Engineer Banner	MartianEngineerBanner
 2948	Martian Gigazapper Banner	MartianGigazapperBanner
@@ -3315,21 +3315,21 @@
 3315	Format:C	FormatC
 3316	Gradient	Gradient
 3317	Valor	Valor
-3318	Treasure Bag	KingSlimeBossBag
-3319	Treasure Bag	EyeOfCthulhuBossBag
-3320	Treasure Bag	EaterOfWorldsBossBag
-3321	Treasure Bag	BrainOfCthulhuBossBag
-3322	Treasure Bag	QueenBeeBossBag
-3323	Treasure Bag	SkeletronBossBag
-3324	Treasure Bag	WallOfFleshBossBag
-3325	Treasure Bag	DestroyerBossBag
-3326	Treasure Bag	TwinsBossBag
-3327	Treasure Bag	SkeletronPrimeBossBag
-3328	Treasure Bag	PlanteraBossBag
-3329	Treasure Bag	GolemBossBag
-3330	Treasure Bag	FishronBossBag
-3331	Treasure Bag	CultistBossBag
-3332	Treasure Bag	MoonLordBossBag
+3318	Treasure Bag (King Slime)	KingSlimeBossBag
+3319	Treasure Bag (Eye of Cthulhu)	EyeOfCthulhuBossBag
+3320	Treasure Bag (Eater of Worlds)	EaterOfWorldsBossBag
+3321	Treasure Bag (Brain of Cthulhu)	BrainOfCthulhuBossBag
+3322	Treasure Bag (Queen Bee)	QueenBeeBossBag
+3323	Treasure Bag (Skeletron)	SkeletronBossBag
+3324	Treasure Bag (Wall of Flesh)	WallOfFleshBossBag
+3325	Treasure Bag (The Destroyer)	DestroyerBossBag
+3326	Treasure Bag (The Twins)	TwinsBossBag
+3327	Treasure Bag (Skeletron Prime)	SkeletronPrimeBossBag
+3328	Treasure Bag (Plantera)	PlanteraBossBag
+3329	Treasure Bag (Golem)	GolemBossBag
+3330	Treasure Bag (Duke Fishron)	FishronBossBag
+3331	Treasure Bag (Lunatic Cultist)	CultistBossBag
+3332	Treasure Bag (Moon Lord)	MoonLordBossBag
 3333	Hive Pack	HiveBackpack
 3334	Yoyo Glove	YoYoGlove
 3335	Demon Heart	DemonHeart
@@ -3387,7 +3387,7 @@
 3387	Strange Plant	StrangePlant3
 3388	Strange Plant	StrangePlant4
 3389	Terrarian	Terrarian
-3390	Goblin Summoner Banner	GoblinSummonerBanner
+3390	Goblin Warlock Banner	GoblinSummonerBanner
 3391	Salamander Banner	SalamanderBanner
 3392	Giant Shelly Banner	GiantShellyBanner
 3393	Crawdad Banner	CrawdadBanner
@@ -3421,7 +3421,7 @@
 3421	Milkyway Weaver Banner	StardustWormBanner
 3422	Flow Invader Banner	StardustJellyfishBanner
 3423	Twinkle Popper Banner	StardustSpiderBanner
-3424	Small Star Cell Banner	StardustSmallCellBanner
+3424	Mini Star Cell Banner	StardustSmallCellBanner
 3425	Star Cell Banner	StardustLargeCellBanner
 3426	Corite Banner	SolarCoriteBanner
 3427	Sroller Banner	SolarSrollerBanner
@@ -3459,10 +3459,10 @@
 3459	Stardust Fragment	FragmentStardust
 3460	Luminite	LunarOre
 3461	Luminite Brick	LunarBrick
-3462	Stardust Axe	StardustAxe
-3463	Stardust Chainsaw	StardustChainsaw
+3462	Stardust Axe (unobtainable/not implemented)	StardustAxe
+3463	Stardust Chainsaw (unobtainable/not implemented)	StardustChainsaw
 3464	Stardust Drill	StardustDrill
-3465	Stardust Hammer	StardustHammer
+3465	Stardust Hammer (unobtainable/not implemented)	StardustHammer
 3466	Stardust Pickaxe	StardustPickaxe
 3467	Luminite Bar	LunarBar
 3468	Solar Wings	WingsSolar
@@ -3857,7 +3857,7 @@
 3857	Dragon Egg	DD2PetDragon
 3858	Sky Dragon's Fury	MonkStaffT3
 3859	Aerial Bane	DD2BetsyBow
-3860	Treasure Bag	BossBagBetsy
+3860	Treasure Bag (Betsy)	BossBagBetsy
 3861	n/a (No official name)	BossBagOgre
 3862	n/a (No official name)	BossBagDarkMage
 3863	Betsy Mask	BossMaskBetsy
@@ -4007,7 +4007,7 @@
 4007	Stinger Necklace	StingerNecklace
 4008	Ultrabright Helmet	UltrabrightHelmet
 4009	Apple	Apple
-4010	Apple Pie Slice	ApplePieSlice
+4010	Apple Pie Slice (unobtainable/not implemented)	ApplePieSlice
 4011	Apple Pie	ApplePie
 4012	Banana Split	BananaSplit
 4013	BBQ Ribs	BBQRibs
@@ -4055,7 +4055,7 @@
 4055	Dunerider Boots	SandBoots
 4056	Ancient Chisel	AncientChisel
 4057	Rain Song	CarbonGuitar
-4058	Skull Bow	SkeletonBow
+4058	Skull Bow (unobtainable/not implemented)	SkeletonBow
 4059	Fossil Pickaxe	FossilPickaxe
 4060	Super Star Shooter	SuperStarCannon
 4061	Storm Spear	ThunderSpear
@@ -4138,7 +4138,7 @@
 4138	Country Club Visor	GolfVisor
 4139	Spider Nest Block	SpiderBlock
 4140	Spider Nest Wall	SpiderWall
-4141	Meteor Toilet	ToiletMeteor
+4141	Meteorite Toilet	ToiletMeteor
 4142	Decay Chamber	LesionStation
 4143	n/a (No official name)	ManaCloakStar
 4144	Terragrim	Terragrim
@@ -4665,10 +4665,10 @@
 4665	Pretty Pink Stockings	PrettyPinkDressPants
 4666	Pretty Pink Ribbon	PrettyPinkRibbon
 4667	Bamboo Fence	BambooFence
-4668	Illuminant Paint	GlowPaint
+4668	Illuminant Coating	GlowPaint
 4669	Sand Shark Kite	KiteSandShark
 4670	Corrupt Bunny Kite	KiteBunnyCorrupt
-4671	Crimson Bunny Kite	KiteBunnyCrimson
+4671	Vicious Bunny Kite	KiteBunnyCrimson
 4672	Leather Whip	BlandWhip
 4673	Drumstick	DrumStick
 4674	Goldfish Kite	KiteGoldfish
@@ -4764,7 +4764,7 @@
 4764	Shroomerang	Shroomerang
 4765	Tree Globe	TreeGlobe
 4766	World Globe	WorldGlobe
-4767	Guide To Critter Companionship	DontHurtCrittersBook
+4767	Guide to Critter Companionship	DontHurtCrittersBook
 4768	Dog Ears	DogEars
 4769	Dog Tail	DogTail
 4770	Fox Ears	FoxEars
@@ -4779,7 +4779,7 @@
 4779	Mushroom Hat	MushroomHat
 4780	Mushroom Vest	MushroomVest
 4781	Mushroom Pants	MushroomPants
-4782	Treasure Bag	FairyQueenBossBag
+4782	Treasure Bag (Empress of Light)	FairyQueenBossBag
 4783	Empress of Light Trophy	FairyQueenTrophy
 4784	Empress of Light Mask	FairyQueenMask
 4785	Dusty Rawhide Saddle	PaintedHorseSaddle
@@ -4954,7 +4954,7 @@
 4954	Celestial Starboard	LongRainbowTrailWings
 4955	Rabbit Perch	RabbitOrder
 4956	Zenith	Zenith
-4957	Treasure Bag	QueenSlimeBossBag
+4957	Treasure Bag (Queen Slime)	QueenSlimeBossBag
 4958	Queen Slime Trophy	QueenSlimeTrophy
 4959	Queen Slime Mask	QueenSlimeMask
 4960	Regal Delicacy	QueenSlimePetItem
@@ -5108,7 +5108,7 @@
 5108	Deerclops Trophy	DeerclopsTrophy
 5109	Deerclops Mask	DeerclopsMask
 5110	Deerclops Relic	DeerclopsMasterTrophy
-5111	Treasure Bag	DeerclopsBossBag
+5111	Treasure Bag (Deerclops)	DeerclopsBossBag
 5112	Music Box (Deerclops)	MusicBoxDeerclops
 5113	Radio Thing	DontStarveShaderItem
 5114	Abigail's Flower	AbigailsFlower
@@ -5122,3 +5122,1023 @@
 5122	The Firestarter	PaintingWillow
 5123	The Bereaved	PaintingWendy
 5124	The Strongman	PaintingWolfgang
+5125	Fart Kart	FartMinecart
+5126	Hand Of Creation	HandOfCreation
+5127	Neon Moss	VioletMoss
+5128	Helium Moss	RainbowMoss
+5129	Flymeal	Flymeal
+5130	Lilith's Necklace	WolfMountItem
+5131	Resplendent Dessert	ResplendentDessert
+5132	Stinkbug	Stinkbug
+5133	Stinkbug Cage	StinkbugCage
+5134	Terraformer	Clentaminator2
+5135	Venom Dart Trap	VenomDartTrap
+5136	Vulkelf Ears	VulkelfEar
+5137	Stinkbug Blocker	StinkbugHousingBlocker
+5138	Ghostly Stinkbug Blocker	StinkbugHousingBlockerEcho
+5139	Fishing Bobber	FishingBobber
+5140	Glowing Fishing Bobber	FishingBobberGlowingStar
+5141	Lava Moss Fishing Bobber	FishingBobberGlowingLava
+5142	Krypton Moss Fishing Bobber	FishingBobberGlowingKrypton
+5143	Xenon Moss Fishing Bobber	FishingBobberGlowingXenon
+5144	Argon Moss Fishing Bobber	FishingBobberGlowingArgon
+5145	Neon Moss Fishing Bobber	FishingBobberGlowingViolet
+5146	Helium Moss Fishing Bobber	FishingBobberGlowingRainbow
+5147	Wand of Frosting	WandofFrosting
+5148	Reef Bathtub	CoralBathtub
+5149	Reef Bed	CoralBed
+5150	Reef Bookcase	CoralBookcase
+5151	Reef Dresser	CoralDresser
+5152	Reef Candelabra	CoralCandelabra
+5153	Reef Candle	CoralCandle
+5154	Reef Chair	CoralChair
+5155	Reef Chandelier	CoralChandelier
+5156	Reef Chest	CoralChest
+5157	Reef Clock	CoralClock
+5158	Reef Door	CoralDoor
+5159	Reef Lamp	CoralLamp
+5160	Reef Lantern	CoralLantern
+5161	Reef Piano	CoralPiano
+5162	Reef Platform	CoralPlatform
+5163	Reef Sink	CoralSink
+5164	Reef Sofa	CoralSofa
+5165	Reef Table	CoralTable
+5166	Reef Work Bench	CoralWorkbench
+5167	Trapped Reef Chest	Fake_CoralChest
+5168	Reef Toilet	CoralToilet
+5169	Balloon Bathtub	BalloonBathtub
+5170	Balloon Bed	BalloonBed
+5171	Balloon Bookcase	BalloonBookcase
+5172	Balloon Dresser	BalloonDresser
+5173	Balloon Candelabra	BalloonCandelabra
+5174	Balloon Candle	BalloonCandle
+5175	Balloon Chair	BalloonChair
+5176	Balloon Chandelier	BalloonChandelier
+5177	Balloon Chest	BalloonChest
+5178	Balloon Clock	BalloonClock
+5179	Balloon Door	BalloonDoor
+5180	Balloon Lamp	BalloonLamp
+5181	Balloon Lantern	BalloonLantern
+5182	Balloon Piano	BalloonPiano
+5183	Balloon Platform	BalloonPlatform
+5184	Balloon Sink	BalloonSink
+5185	Balloon Sofa	BalloonSofa
+5186	Balloon Table	BalloonTable
+5187	Balloon Work Bench	BalloonWorkbench
+5188	Trapped Balloon Chest	Fake_BalloonChest
+5189	Balloon Toilet	BalloonToilet
+5190	Ash Wood Bathtub	AshWoodBathtub
+5191	Ash Wood Bed	AshWoodBed
+5192	Ash Wood Bookcase	AshWoodBookcase
+5193	Ash Wood Dresser	AshWoodDresser
+5194	Ash Wood Candelabra	AshWoodCandelabra
+5195	Ash Wood Candle	AshWoodCandle
+5196	Ash Wood Chair	AshWoodChair
+5197	Ash Wood Chandelier	AshWoodChandelier
+5198	Ash Wood Chest	AshWoodChest
+5199	Ash Wood Clock	AshWoodClock
+5200	Ash Wood Door	AshWoodDoor
+5201	Ash Wood Lamp	AshWoodLamp
+5202	Ash Wood Lantern	AshWoodLantern
+5203	Ash Wood Piano	AshWoodPiano
+5204	Ash Wood Platform	AshWoodPlatform
+5205	Ash Wood Sink	AshWoodSink
+5206	Ash Wood Sofa	AshWoodSofa
+5207	Ash Wood Table	AshWoodTable
+5208	Ash Wood Work Bench	AshWoodWorkbench
+5209	Trapped Ash Wood Chest	Fake_AshWoodChest
+5210	Ash Wood Toilet	AshWoodToilet
+5211	Biome Sight Potion	BiomeSightPotion
+5212	Scarlet Macaw	ScarletMacaw
+5213	Scarlet Macaw Cage	ScarletMacawCage
+5214	Ash Grass Seeds	AshGrassSeeds
+5215	Ash Wood	AshWood
+5216	Ash Wood Wall	AshWoodWall
+5217	Ash Wood Fence	AshWoodFence
+5218	Outcast	Outcast
+5219	Fairy Guides	FairyGuides
+5220	A Horrible Night for Alchemy	AHorribleNightforAlchemy
+5221	Morning Hunt	MorningHunt
+5222	Suspiciously Sparkly	SuspiciouslySparkly
+5223	Requiem	Requiem
+5224	Cat Sword	CatSword
+5225	Kargoh's Summon	KargohsSummon
+5226	High Pitch	HighPitch
+5227	A Machine for Terrarians	AMachineforTerrarians
+5228	Terra Blade Chronicles	TerraBladeChronicles
+5229	Benny Warhol	BennyWarhol
+5230	Lizard King	LizardKing
+5231	My Son	MySon
+5232	Duality	Duality
+5233	Parsec Pals	ParsecPals
+5234	Remnants of Devotion	RemnantsofDevotion
+5235	Not So Lost In Paradise	NotSoLostInParadise
+5236	Ocular Resonance	OcularResonance
+5237	Wings of Evil	WingsofEvil
+5238	Constellation	Constellation
+5239	Eyezorhead	Eyezorhead
+5240	Dread of the Red Sea	DreadoftheRedSea
+5241	Do Not Eat the Vile Mushroom!	DoNotEattheVileMushroom
+5242	Yuuma, The Blue Tiger	YuumaTheBlueTiger
+5243	Moonman & Company	MoonmanandCompany
+5244	Sunshine of Israpony	SunshineofIsrapony
+5245	Purity	Purity
+5246	Sufficiently Advanced	SufficientlyAdvanced
+5247	Strange Growth	StrangeGrowth
+5248	Happy Little Tree	HappyLittleTree
+5249	Strange Dead Fellows	StrangeDeadFellows
+5250	Secrets	Secrets
+5251	Thunderbolt	Thunderbolt
+5252	Crustography	Crustography
+5253	The Werewolf	TheWerewolf
+5254	Blessing from the Heavens	BlessingfromTheHeavens
+5255	Love is in the Trash Slot	LoveisintheTrashSlot
+5256	Fangs	Fangs
+5257	Hail to the King	HailtotheKing
+5258	See The World For What It Is	SeeTheWorldForWhatItIs
+5259	What Lurks Below	WhatLurksBelow
+5260	This Is Getting Out Of Hand	ThisIsGettingOutOfHand
+5261	Buddies	Buddies
+5262	Midnight Sun	MidnightSun
+5263	Couch Gag	CouchGag
+5264	Silent Fish	SilentFish
+5265	The Duke	TheDuke
+5266	Royal Romance	RoyalRomance
+5267	Bioluminescence	Bioluminescence
+5268	Wildflowers	Wildflowers
+5269	Viking Voyage	VikingVoyage
+5270	Bifrost	Bifrost
+5271	Heartlands	Heartlands
+5272	Forest Troll	ForestTroll
+5273	Aurora Borealis	AuroraBorealis
+5274	Lady Of The Lake	LadyOfTheLake
+5275	Joja Cola	JojaCola
+5276	Stardrop	JunimoPetItem
+5277	Spicy Pepper	SpicyPepper
+5278	Pomegranate	Pomegranate
+5279	Ash Wood Helmet	AshWoodHelmet
+5280	Ash Wood Breastplate	AshWoodBreastplate
+5281	Ash Wood Greaves	AshWoodGreaves
+5282	Ash Wood Bow	AshWoodBow
+5283	Ash Wood Hammer	AshWoodHammer
+5284	Ash Wood Sword	AshWoodSword
+5285	Moon Globe	MoonGlobe
+5286	Repaired Life Crystal	RepairedLifeCrystal
+5287	Repaired Mana Crystal	RepairedManaCrystal
+5288	Terra Fart Kart	TerraFartMinecart
+5289	Minecart Upgrade Kit	MinecartPowerup
+5290	Jim's Cap	JimsCap
+5291	Echo Wall	EchoWall
+5292	Echo Platform	EchoPlatform
+5293	Mushroom Torch	MushroomTorch
+5294	Hive-Five	HiveFive
+5295	Axe of Regrowth	AcornAxe
+5296	Chlorophyte Extractinator	ChlorophyteExtractinator
+5297	Blue Chicken Egg	BlueEgg
+5298	Trimarang	Trimarang
+5299	Mushroom Campfire	MushroomCampfire
+5300	Blue Macaw	BlueMacaw
+5301	Blue Macaw Cage	BlueMacawCage
+5302	Bottomless Honey Bucket	BottomlessHoneyBucket
+5303	Honey Absorbant Sponge	HoneyAbsorbantSponge
+5304	Ultra Absorbant Sponge	UltraAbsorbantSponge
+5305	Goblorc Ears	GoblorcEar
+5306	Reef Block	ReefBlock
+5307	Reef Wall	ReefWall
+5308	r/Terraria	PlacePainting
+5309	Guide to Environmental Preservation	DontHurtNatureBook
+5310	Princess Style	PrincessStyle
+5311	Toucan	Toucan
+5312	Yellow Cockatiel	YellowCockatiel
+5313	Gray Cockatiel	GrayCockatiel
+5314	Toucan Cage	ToucanCage
+5315	Yellow Cockatiel Cage	YellowCockatielCage
+5316	Gray Cockatiel Cage	GrayCockatielCage
+5317	Macaw Statue	MacawStatue
+5318	Toucan Statue	ToucanStatue
+5319	Cockatiel Statue	CockatielStatue
+5320	Decorative Healing Potion	PlaceableHealingPotion
+5321	Decorative Mana Potion	PlaceableManaPotion
+5322	Shadow Candle	ShadowCandle
+5323	Guide to Peaceful Coexistence	DontHurtComboBook
+5324	Rubblemaker (Small)	RubblemakerSmall
+5325	Closed Void Bag	ClosedVoidBag
+5326	Artisan Loaf	ArtisanLoaf
+5327	TNT Barrel	TNTBarrel
+5328	Chest Lock	ChestLock
+5329	Rubblemaker (Medium)	RubblemakerMedium
+5330	Rubblemaker (Large)	RubblemakerLarge
+5331	Bundle of Horseshoe Balloons	HorseshoeBundle
+5332	Spiffo Plush	SpiffoPlush
+5333	Glow Tulip	GlowTulip
+5334	Ocram's Razor	MechdusaSummon
+5335	Rod of Harmony	RodOfHarmony
+5336	Advanced Combat Techniques: Volume Two	CombatBookVolumeTwo
+5337	Vital Crystal	AegisCrystal
+5338	Aegis Fruit	AegisFruit
+5339	Arcane Crystal	ArcaneCrystal
+5340	Galaxy Pearl	GalaxyPearl
+5341	Gummy Worm	GummyWorm
+5342	Ambrosia	Ambrosia
+5343	Peddler's Satchel	PeddlersSatchel
+5344	Echo Coating	EchoCoating
+5345	Echo Chamber	EchoMonolith
+5346	Gas Trap	GasTrap
+5347	Aether Monolith	ShimmerMonolith
+5348	Shimmer Arrow	ShimmerArrow
+5349	Aetherium Block	ShimmerBlock
+5350	Faeling	Shimmerfly
+5351	Faeling in a Bottle	ShimmerflyinaBottle
+5352	Shimmer Slime Banner	ShimmerSlimeBanner
+5353	Aether Torch	ShimmerTorch
+5354	Reflective Shades	ReflectiveShades
+5355	Chromatic Cloak	ShimmerCloak
+5356	Used Gas Trap	UsedGasTrap
+5357	Aether Campfire	ShimmerCampfire
+5358	Shellphone (Home)	Shellphone
+5359	Shellphone (Spawn)	ShellphoneSpawn
+5360	Shellphone (Ocean)	ShellphoneOcean
+5361	Shellphone (Underworld)	ShellphoneHell
+5362	Music Box (Aether)	MusicBoxShimmer
+5363	Infested Spider Wall	SpiderWallUnsafe
+5364	Bottomless Shimmer Bucket	BottomlessShimmerBucket
+5365	Cursed Blue Brick Wall	BlueBrickWallUnsafe
+5366	Cursed Blue Slab Wall	BlueSlabWallUnsafe
+5367	Cursed Blue Tiled Wall	BlueTiledWallUnsafe
+5368	Cursed Pink Brick Wall	PinkBrickWallUnsafe
+5369	Cursed Pink Slab Wall	PinkSlabWallUnsafe
+5370	Cursed Pink Tiled Wall	PinkTiledWallUnsafe
+5371	Cursed Green Brick Wall	GreenBrickWallUnsafe
+5372	Cursed Green Slab Wall	GreenSlabWallUnsafe
+5373	Cursed Green Tiled Wall	GreenTiledWallUnsafe
+5374	Treacherous Sandstone Wall	SandstoneWallUnsafe
+5375	Treacherous Hardened Sand Wall	HardenedSandWallUnsafe
+5376	Forbidden Lihzahrd Brick Wall	LihzahrdWallUnsafe
+5377	Spelunker Flare	SpelunkerFlare
+5378	Cursed Flare	CursedFlare
+5379	Rainbow Flare	RainbowFlare
+5380	Shimmer Flare	ShimmerFlare
+5381	Enchanted Moondial	Moondial
+5382	Waffle's Iron	WaffleIron
+5383	Bouncy Boulder	BouncyBoulder
+5384	Life Crystal Boulder	LifeCrystalBoulder
+5385	Dizzy's Rare Gecko Chester	DizzyHat
+5386	Raynbro's Hoodie	LincolnsHoodie
+5387	Raynbro's Pants	LincolnsPants
+5388	Eye of the Sun	SunOrnament
+5389	Cheesy Pizza Poster	HoplitePizza
+5390	Raynbro's Hood	LincolnsHood
+5391	Uncumbering Stone	UncumberingStone
+5392	Yellow Solution	SandSolution
+5393	White Solution	SnowSolution
+5394	Brown Solution	DirtSolution
+5395	Poo	PoopBlock
+5396	Poo Wall	PoopWall
+5397	Aetherium Wall	ShimmerWall
+5398	Aetherium Brick	ShimmerBrick
+5399	Aetherium Brick Wall	ShimmerBrickWall
+5400	The Dirtiest Block	DirtiestBlock
+5401	Lunar Rust Brick	LunarRustBrick
+5402	Dark Celestial Brick	DarkCelestialBrick
+5403	Astra Brick	AstraBrick
+5404	Cosmic Ember Brick	CosmicEmberBrick
+5405	Cryocore Brick	CryocoreBrick
+5406	Mercury Brick	MercuryBrick
+5407	Star Royale Brick	StarRoyaleBrick
+5408	Heavenforge Brick	HeavenforgeBrick
+5409	Lunar Rust Brick Wall	LunarRustBrickWall
+5410	Dark Celestial Brick Wall	DarkCelestialBrickWall
+5411	Astra Brick Wall	AstraBrickWall
+5412	Cosmic Ember Brick Wall	CosmicEmberBrickWall
+5413	Cryocore Brick Wall	CryocoreBrickWall
+5414	Mercury Brick Wall	MercuryBrickWall
+5415	Star Royale Brick Wall	StarRoyaleBrickWall
+5416	Heavenforge Brick Wall	HeavenforgeBrickWall
+5417	Ancient Blue Brick	AncientBlueDungeonBrick
+5418	Ancient Blue Brick Wall	AncientBlueDungeonBrickWall
+5419	Ancient Green Brick	AncientGreenDungeonBrick
+5420	Ancient Green Brick Wall	AncientGreenDungeonBrickWall
+5421	Ancient Pink Brick	AncientPinkDungeonBrick
+5422	Ancient Pink Brick Wall	AncientPinkDungeonBrickWall
+5423	Ancient Gold Brick	AncientGoldBrick
+5424	Ancient Gold Brick Wall	AncientGoldBrickWall
+5425	Ancient Silver Brick	AncientSilverBrick
+5426	Ancient Silver Brick Wall	AncientSilverBrickWall
+5427	Ancient Copper Brick	AncientCopperBrick
+5428	Ancient Copper Brick Wall	AncientCopperBrickWall
+5429	Ancient Cobalt Brick	AncientCobaltBrick
+5430	Ancient Cobalt Brick Wall	AncientCobaltBrickWall
+5431	Ancient Mythril Brick	AncientMythrilBrick
+5432	Ancient Mythril Brick Wall	AncientMythrilBrickWall
+5433	Ancient Obsidian Brick	AncientObsidianBrick
+5434	Ancient Obsidian Brick Wall	AncientObsidianBrickWall
+5435	Ancient Hellstone Brick	AncientHellstoneBrick
+5436	Ancient Hellstone Brick Wall	AncientHellstoneBrickWall
+5437	Shellphone	ShellphoneDummy
+5438	Fertilizer	Fertilizer
+5439	Lava Moss Brick	LavaMossBlock
+5440	Argon Moss Brick	ArgonMossBlock
+5441	Krypton Moss Brick	KryptonMossBlock
+5442	Xenon Moss Brick	XenonMossBlock
+5443	Neon Moss Brick	VioletMossBlock
+5444	Helium Moss Brick	RainbowMossBlock
+5445	Lava Moss Brick Wall	LavaMossBlockWall
+5446	Argon Moss Brick Wall	ArgonMossBlockWall
+5447	Krypton Moss Brick Wall	KryptonMossBlockWall
+5448	Xenon Moss Brick Wall	XenonMossBlockWall
+5449	Neon Moss Brick Wall	VioletMossBlockWall
+5450	Helium Moss Brick Wall	RainbowMossBlockWall
+5451	Kwad Racer Drone	JimsDrone
+5452	FPV Goggles	JimsDroneVisor
+5453	Guide to Critter Companionship (Inactive)	DontHurtCrittersBookInactive
+5454	Guide to Environmental Preservation (Inactive)	DontHurtNatureBookInactive
+5455	Guide to Peaceful Coexistence (Inactive)	DontHurtComboBookInactive
+5456	Mushroom Staff	DeadCellsMushroomBoiSummonItem
+5457	The Beheaded's Head	DeadCellsBeheadedHead
+5458	The Beheaded's Cuirass	DeadCellsBeheadedBody
+5459	The Beheaded's Trousers	DeadCellsBeheadedLegs
+5460	Barrel Launcher	DeadCellsBarrelLauncher
+5461	Killing Deck	DeadCellsKillingDeck
+5462	Flint	DeadCellsFlint
+5463	Barnacle Staff	DeadCellsBarnacleSummonItem
+5464	Mitey-Titey	MiteyTitey
+5465	Ram Rune	DeadCellsRamRune
+5466	Swarm Grenade	DeadCellsSwarmGrenade
+5467	Replica Demon Altar	DemonAltarReplica
+5468	Replica Crimson Altar	CrimsonAltarReplica
+5469	Replica Shadow Orb	ShadowOrbReplica
+5470	Replica Crimson Heart	CrimsonHeartReplica
+5471	Decorative Cobweb	CobwebReplica
+5472	Item Flask	DeadCellsDisplayJar
+5473	Cobwhip	CobWhip
+5474	Soulscourge	CorruptWhip
+5475	Vasculash	CrimsonWhip
+5476	Starcrash	MeteorWhip
+5477	Vulgar Display of Flower	FlowerWhip
+5478	Electric Eel	EelWhip
+5479	Constellation	ConstellationWhip
+5480	Possession	MoonLordWhip
+5481	Portable Kiln	PortableKiln
+5482	Alchemy Flask	DeadCellsPotionStation
+5483	Queen of Bees	QueenOfBees
+5484	Cow Bell	PlayerVoiceCowbellItem
+5485	Chicken Charm	PlayerVoiceChickenFeetItem
+5486	The Sea of Silence	TheSeaOfSilence
+5487	Heroes From Another World	HeroesFromAnotherWorld
+5488	Crystallize	Crystallize
+5489	Eater Of Life	EaterOfLife
+5490	This Is Canon Now	ThisIsCanonNow
+5491	Winter At Varingskollen	WinterAtVaringskollen
+5492	Magic Shimmer Dropper	MagicShimmerDropper
+5493	Shimmerfall Block	ShimmerFallBlock
+5494	Shimmerfall Wall	ShimmerFallWall
+5495	Shimmer Gun	ShimmerGun
+5496	Jungle Juice	LifeFruitHealingPotion
+5497	Pink Banner	PinkBanner
+5498	White Banner	WhiteBanner
+5499	Froggy Neckband	PlayerVoiceFrogItem
+5500	Goat's Tuft	PlayerVoiceGoatItem
+5501	Old Companion Locket	PlayerVoiceRetroItem
+5502	Cat Chime	PlayerVoiceCatItem
+5503	Dog Collar	PlayerVoiceDogItem
+5504	Turkey Wattle Necklace	PlayerVoiceTurkeyItem
+5505	Mean Goblin's Spikes	PlayerVoiceGoblinItem
+5506	Crow's Beak	PlayerVoiceCrowItem
+5507	Balloony Beads	PlayerVoiceBalloonItem
+5508	Grim Old Barb	PlayerVoiceUndeadItem
+5509	Vampire Pendant	PlayerVoiceVampireItem
+5510	Slasher's Mysterious Skull	VelociraptorMountItem
+5511	Pufferfish	Pufferfish
+5512	Pufferfish Cage	PufferfishCage
+5513	Puffer Shrimp	PufferfishPet
+5514	Rainbow Boulder	RainbowBoulder
+5515	Moon Lord Torso	MoonLordBody
+5516	Poo Boulder	Poulder
+5517	Faecorn	AxeFairyPetItem
+5518	Infused Fertilizer	SuperFertilizer
+5519	Axearang	Axearang
+5520	Lava Boulder	LavaBoulder
+5521	Spider Boulder	SpiderBoulder
+5522	Ghoulder	Ghoulder
+5523	Friendly Boulder	BoulderPet
+5524	Chlorophyte Visor	ChlorophyteVisor
+5525	Cursed Piper Flute	RatMountItem
+5526	Flairon	FlaironFlail
+5527	Of Sea and Dreams	OfSeaAndDreams
+5528	The Runic Pixie	TheRunicPixie
+5529	Banner of the Beast	BannerOfTheBeast
+5530	Stickman vs Terr Terr	StickmanVsTerrTerr
+5531	Cozy Window	CozyWindow
+5532	Demon Altar	DemonAltar
+5533	Crimson Altar	CrimsonAltar
+5534	Fairy Choker	PlayerVoiceFairyItem
+5535	Pink Phaseblade	PinkPhaseblade
+5536	Pink Phasesaber	PinkPhasesaber
+5537	Blackened Fish	BlackenedFish
+5538	Music Box (Queen Bee)	MusicBoxQueenBee
+5539	Music Box (The Twins)	MusicBoxTwins
+5540	Magic String	MagicString
+5541	Magic Yoyo Bag	MagicYoyoBag
+5542	Freeze Bomb	FreezeBomb
+5543	Stress Ball	StressBall
+5544	Cloud Platform	CloudPlatform
+5545	Overgrown Living Wood Wall	LivingWoodWallUnsafe
+5546	Natural Dirt Wall	DirtWallUnsafe
+5547	Strung Counterweight	StrungCounterweight
+5548	Aetherium Bathtub	AetheriumBathtub
+5549	Aetherium Bed	AetheriumBed
+5550	Aetherium Bookcase	AetheriumBookcase
+5551	Aetherium Dresser	AetheriumDresser
+5552	Aetherium Candelabra	AetheriumCandelabra
+5553	Aetherium Candle	AetheriumCandle
+5554	Aetherium Chair	AetheriumChair
+5555	Aetherium Chandelier	AetheriumChandelier
+5556	Aetherium Chest	AetheriumChest
+5557	Aetherium Clock	AetheriumClock
+5558	Aetherium Door	AetheriumDoor
+5559	Aetherium Lamp	AetheriumLamp
+5560	Aetherium Lantern	AetheriumLantern
+5561	Aetherium Piano	AetheriumPiano
+5562	Aetherium Platform	AetheriumPlatform
+5563	Aetherium Sink	AetheriumSink
+5564	Aetherium Sofa	AetheriumSofa
+5565	Aetherium Table	AetheriumTable
+5566	Aetherium Work Bench	AetheriumWorkbench
+5567	Trapped Aetherium Chest	Fake_AetheriumChest
+5568	Aetherium Toilet	AetheriumToilet
+5569	Lava Cloud	LavaCloud
+5570	Star Cloud	StarCloud
+5571	Rainbow Cloud	RainbowCloud
+5572	Mud Ball	MudBallPlayer
+5573	Torch God's Flavor	TorchGodPotion
+5574	Lucky Clover	LuckyClover
+5575	Wilted Clover	WiltedClover
+5576	Raven Feather	RavenFeather
+5577	Pretty Mirror	PrettyMirror
+5578	Music Box (King Slime)	MusicBoxKingSlime
+5579	Music Box (Alt Queen Bee)	MusicBoxQueenBeeAlt
+5580	Music Box (Lunatic Cultist)	MusicBoxLunaticCultist
+5581	Music Box (Skeletron Prime)	MusicBoxSkeletronPrime
+5582	Music Box (The Destroyer)	MusicBoxDestroyer
+5583	Chicken Bones' Visor	ChickenBonesHead
+5584	Chicken Bones' Vest	ChickenBonesBody
+5585	Chicken Bones' Pants	ChickenBonesLegs
+5586	Chicken Bones' Wings	ChickenBonesWings
+5587	Chicken Bones' Robe	ChickenBonesRobe
+5588	Prospector Helmet	UpgradedMiningHead
+5589	Prospector Shirt	UpgradedMiningBody
+5590	Prospector Pants	UpgradedMiningLegs
+5591	Captain Hat	UpgradedFishingHead
+5592	Captain Vest	UpgradedFishingBody
+5593	Captain Pants	UpgradedFishingLegs
+5594	Power Bomb	SuperBomb
+5595	Sticky Power Bomb	SuperStickyBomb
+5596	Welding Mask	WeldingMask
+5597	Amulet of the Night	BatMountItem
+5598	CRT Monolith	CRTMonolith
+5599	Retro Monolith	RetroMonolith
+5600	Blue Roller Skates	RollerSkatesBlueMountItem
+5601	Fallen Star Bathtub	FallenStarBathtub
+5602	Fallen Star Bed	FallenStarBed
+5603	Fallen Star Bookcase	FallenStarBookcase
+5604	Fallen Star Dresser	FallenStarDresser
+5605	Fallen Star Candelabra	FallenStarCandelabra
+5606	Fallen Star Candle	FallenStarCandle
+5607	Fallen Star Chair	FallenStarChair
+5608	Fallen Star Chandelier	FallenStarChandelier
+5609	Fallen Star Chest	FallenStarChest
+5610	Fallen Star Clock	FallenStarClock
+5611	Fallen Star Door	FallenStarDoor
+5612	Fallen Star Lamp	FallenStarLamp
+5613	Fallen Star Lantern	FallenStarLantern
+5614	Fallen Star Piano	FallenStarPiano
+5615	Fallen Star Platform	FallenStarPlatform
+5616	Fallen Star Sink	FallenStarSink
+5617	Fallen Star Sofa	FallenStarSofa
+5618	Fallen Star Table	FallenStarTable
+5619	Fallen Star Work Bench	FallenStarWorkbench
+5620	Trapped Fallen Star Chest	Fake_FallenStarChest
+5621	Fallen Star Toilet	FallenStarToilet
+5622	Fallen Star Block	FallenStarBlock
+5623	Fallen Star Wall	FallenStarWall
+5624	Chippy's Helmet	ChippysHead
+5625	Chippy's Chestplate	ChippysBody
+5626	Chippy's Greaves	ChippysLegs
+5627	Chippy's Cloak	ChippysWings
+5628	Chippy's Headband	ChippysHeadband
+5629	Acorn Slingshot	AcornSlingshot
+5630	r/Terraria 2023	PaintingRPlace2023
+5631	Bould and Bash	PaintingBouldChoices
+5632	Dark Forebodings	PaintingDarkForebodings
+5633	Oktober	PaintingGermanZenith
+5634	It's Scragglin' Time	PaintingItsScragglinTime
+5635	Kaguya	PaintingKaguya
+5636	Prost	PaintingGermanBeer
+5637	Music Box (Eater of Worlds)	MusicBoxEaterOfWorlds
+5638	Music Box (Torch God)	MusicBoxTorchGod
+5639	Music Box (Alt Torch God)	MusicBoxTorchGodAlt
+5640	Green Roller Skates	RollerSkatesGreenMountItem
+5641	Classic Roller Skates	RollerSkatesClassicMountItem
+5642	Party Roller Skates	RollerSkatesPartyMountItem
+5643	Rainbow Glowstick	RainbowGlowstick
+5644	Scrying Orb	ScryingOrb
+5645	Rock Candy	RockCandy
+5646	Blue Bikini Top	BlueBikiniBody
+5647	Blue Bikini Bottom	BlueBikiniLegs
+5648	Red Swimsuit	RedSwimsuit
+5649	Green Swimshorts	GreenSwimshorts
+5650	Gray Swimshorts	GraySwimshorts
+5651	Orca Banner	OrcaBanner
+5652	Underworld Pylon	TeleportationPylonUnderworld
+5653	Aether Pylon	TeleportationPylonShimmer
+5654	Friendly Rainbow Boulder	RainbowBoulderPet
+5655	Film Projector	NoirMonolith
+5656	Heroicis' Hat	HeroicisHead
+5657	Heroicis' Coat	HeroicisBody
+5658	Heroicis' Pants	HeroicisLegs
+5659	Heroicis' Wings	HeroicisWings
+5660	Hallowed Crown	HallowedCrown
+5661	Heroicis' Wings (Inactive)	HeroicisWingsInactive
+5662	Enchanted Pixie Dust	EnchantedPixieDust
+5663	Cattiva	PalworldMinionCattiva
+5664	Foxparks	PalworldMinionFoxsparks
+5665	Chillet	PalworldPetChillet
+5666	Chillet Ignis	PalworldPetChilletIgnis
+5667	Digtoise	PalworldDigtoise
+5668	The Imploder	SoundGun
+5669	True Copper Shortsword	TrueCopperShortsword
+5670	Rainbow Phaseblade	RainbowPhaseblade
+5671	Rainbow Phasesaber	RainbowPhasesaber
+5672	Librarian Skeleton Banner	LibrarianSkeletonBanner
+5673	Water Bolt Mimic Banner	WaterBoltMimicBanner
+5674	Dull Red Team Block	TeamBlockRedVariant
+5675	Dull Green Team Block	TeamBlockGreenVariant
+5676	Dull Blue Team Block	TeamBlockBlueVariant
+5677	Dull Yellow Team Block	TeamBlockYellowVariant
+5678	Dull Pink Team Block	TeamBlockPinkVariant
+5679	Dull White Team Block	TeamBlockWhiteVariant
+5680	Lilac Dusk Hairclip	LilacDuskHead
+5681	Lilac Dusk Dress	LilacDuskBody
+5682	Lilac Dusk Skirt	LilacDuskLegs
+5683	Kazzymodus' Hood	KazzymodusHood
+5684	Kazzymodus' Chestpiece	KazzymodusChestpiece
+5685	Kazzymodus' Leggings	KazzymodusLeggings
+5686	Kazzymodus' Wings	KazzymodusWings
+5687	Slime Spear	SlimeSpear
+5688	Slime Whip	SlimeWhip
+5689	Feywood Bathtub	FeywoodBathtub
+5690	Feywood Bed	FeywoodBed
+5691	Feywood Bookcase	FeywoodBookcase
+5692	Feywood Dresser	FeywoodDresser
+5693	Feywood Candelabra	FeywoodCandelabra
+5694	Feywood Candle	FeywoodCandle
+5695	Feywood Chair	FeywoodChair
+5696	Feywood Chandelier	FeywoodChandelier
+5697	Feywood Chest	FeywoodChest
+5698	Feywood Clock	FeywoodClock
+5699	Feywood Door	FeywoodDoor
+5700	Feywood Lamp	FeywoodLamp
+5701	Feywood Lantern	FeywoodLantern
+5702	Feywood Piano	FeywoodPiano
+5703	Feywood Platform	FeywoodPlatform
+5704	Feywood Sink	FeywoodSink
+5705	Feywood Sofa	FeywoodSofa
+5706	Feywood Table	FeywoodTable
+5707	Feywood Work Bench	FeywoodWorkbench
+5708	Trapped Feywood Chest	Fake_FeywoodChest
+5709	Feywood Toilet	FeywoodToilet
+5710	Feywood	Feywood
+5711	Feywood Wall	FeywoodWall
+5712	Hallowed Bathtub	HallowedBathtub
+5713	Hallowed Bed	HallowedBed
+5714	Hallowed Bookcase	HallowedBookcase
+5715	Hallowed Dresser	HallowedDresser
+5716	Hallowed Candelabra	HallowedCandelabra
+5717	Hallowed Candle	HallowedCandle
+5718	Hallowed Chair	HallowedChair
+5719	Hallowed Chandelier	HallowedChandelier
+5720	Fancy Hallowed Chest	HallowedFurnitureChest
+5721	Hallowed Clock	HallowedClock
+5722	Hallowed Door	HallowedDoor
+5723	Hallowed Lamp	HallowedLamp
+5724	Hallowed Lantern	HallowedLantern
+5725	Hallowed Piano	HallowedPiano
+5726	Hallowed Platform	HallowedPlatform
+5727	Hallowed Sink	HallowedSink
+5728	Hallowed Sofa	HallowedSofa
+5729	Hallowed Table	HallowedTable
+5730	Hallowed Work Bench	HallowedWorkbench
+5731	Trapped Fancy Hallowed Chest	Fake_HallowedFurnitureChest
+5732	Hallowed Toilet	HallowedToilet
+5733	Hallowed Brick	HallowedBrick
+5734	Hallowed Brick Wall	HallowedBrickWall
+5735	Pal Metal Chestplate	PalworldPalMetalArmorBody
+5736	Pal Metal Leggings	PalworldPalMetalArmorLegs
+5737	Chippy's Cloak (Inactive)	ChippysWingsInactive
+5738	Wall Racer Car	RemoteControlCar
+5739	Gothic Bathtub	GothicBathtub
+5740	Gothic Bed	GothicBed
+5741	Gothic Dresser	GothicDresser
+5742	Gothic Candelabra	GothicCandelabra
+5743	Gothic Candle	GothicCandle
+5744	Gothic Chandelier	GothicChandelier
+5745	Gothic Chest	GothicChest
+5746	Gothic Clock	GothicClock
+5747	Gothic Door	GothicDoor
+5748	Gothic Lamp	GothicLamp
+5749	Gothic Lantern	GothicLantern
+5750	Gothic Piano	GothicPiano
+5751	Gothic Platform	GothicPlatform
+5752	Gothic Sink	GothicSink
+5753	Gothic Sofa	GothicSofa
+5754	Trapped Gothic Chest	Fake_GothicChest
+5755	Gothic Toilet	GothicToilet
+5756	Demonite Bathtub	DemoniteBathtub
+5757	Demonite Bed	DemoniteBed
+5758	Demonite Bookcase	DemoniteBookcase
+5759	Demonite Candelabra	DemoniteCandelabra
+5760	Demonite Candle	DemoniteCandle
+5761	Demonite Chair	DemoniteChair
+5762	Demonite Chandelier	DemoniteChandelier
+5763	Demonite Chest	DemoniteChest
+5764	Demonite Clock	DemoniteClock
+5765	Demonite Door	DemoniteDoor
+5766	Demonite Dresser	DemoniteDresser
+5767	Demonite Lamp	DemoniteLamp
+5768	Demonite Lantern	DemoniteLantern
+5769	Demonite Piano	DemonitePiano
+5770	Demonite Platform	DemonitePlatform
+5771	Demonite Sink	DemoniteSink
+5772	Demonite Sofa	DemoniteSofa
+5773	Demonite Table	DemoniteTable
+5774	Demonite Toilet	DemoniteToilet
+5775	Demonite Work Bench	DemoniteWorkbench
+5776	Trapped Demonite Chest	Fake_DemoniteChest
+5777	Crimtane Bathtub	CrimtaneBathtub
+5778	Crimtane Bed	CrimtaneBed
+5779	Crimtane Bookcase	CrimtaneBookcase
+5780	Crimtane Candelabra	CrimtaneCandelabra
+5781	Crimtane Candle	CrimtaneCandle
+5782	Crimtane Chair	CrimtaneChair
+5783	Crimtane Chandelier	CrimtaneChandelier
+5784	Crimtane Chest	CrimtaneChest
+5785	Crimtane Clock	CrimtaneClock
+5786	Crimtane Door	CrimtaneDoor
+5787	Crimtane Dresser	CrimtaneDresser
+5788	Crimtane Lamp	CrimtaneLamp
+5789	Crimtane Lantern	CrimtaneLantern
+5790	Crimtane Piano	CrimtanePiano
+5791	Crimtane Platform	CrimtanePlatform
+5792	Crimtane Sink	CrimtaneSink
+5793	Crimtane Sofa	CrimtaneSofa
+5794	Crimtane Table	CrimtaneTable
+5795	Crimtane Toilet	CrimtaneToilet
+5796	Crimtane Work Bench	CrimtaneWorkbench
+5797	Trapped Crimtane Chest	Fake_CrimtaneChest
+5798	Snow Bathtub	SnowBathtub
+5799	Snow Bed	SnowBed
+5800	Snow Bookcase	SnowBookcase
+5801	Snow Candelabra	SnowCandelabra
+5802	Snow Candle	SnowCandle
+5803	Snow Chair	SnowChair
+5804	Snow Chandelier	SnowChandelier
+5805	Snow Chest	SnowChest
+5806	Snow Clock	SnowClock
+5807	Snow Door	SnowDoor
+5808	Snow Dresser	SnowDresser
+5809	Snow Lamp	SnowLamp
+5810	Snow Lantern	SnowLantern
+5811	Snow Piano	SnowPiano
+5812	Snow Platform	SnowPlatform
+5813	Snow Sink	SnowSink
+5814	Snow Sofa	SnowSofa
+5815	Snow Table	SnowTable
+5816	Snow Toilet	SnowToilet
+5817	Snow Work Bench	SnowWorkbench
+5818	Trapped Snow Chest	Fake_SnowChest
+5819	Flinx Fur Bathtub	FlinxFurBathtub
+5820	Flinx Fur Bed	FlinxFurBed
+5821	Flinx Fur Bookcase	FlinxFurBookcase
+5822	Flinx Fur Candelabra	FlinxFurCandelabra
+5823	Flinx Fur Candle	FlinxFurCandle
+5824	Flinx Fur Chair	FlinxFurChair
+5825	Flinx Fur Chandelier	FlinxFurChandelier
+5826	Flinx Fur Chest	FlinxFurChest
+5827	Flinx Fur Clock	FlinxFurClock
+5828	Flinx Fur Door	FlinxFurDoor
+5829	Flinx Fur Dresser	FlinxFurDresser
+5830	Flinx Fur Lamp	FlinxFurLamp
+5831	Flinx Fur Lantern	FlinxFurLantern
+5832	Flinx Fur Piano	FlinxFurPiano
+5833	Flinx Fur Platform	FlinxFurPlatform
+5834	Flinx Fur Sink	FlinxFurSink
+5835	Flinx Fur Sofa	FlinxFurSofa
+5836	Flinx Fur Table	FlinxFurTable
+5837	Flinx Fur Toilet	FlinxFurToilet
+5838	Flinx Fur Work Bench	FlinxFurWorkbench
+5839	Trapped Flinx Fur Chest	Fake_FlinxFurChest
+5840	Pine Bathtub	PineBathtub
+5841	Pine Bed	PineBed
+5842	Pine Bookcase	PineBookcase
+5843	Pine Candelabra	PineCandelabra
+5844	Pine Candle	PineCandle
+5845	Pine Chandelier	PineChandelier
+5846	Pine Chest	PineChest
+5847	Pine Clock	PineClock
+5848	Pine Dresser	PineDresser
+5849	Pine Lamp	PineLamp
+5850	Pine Lantern	PineLantern
+5851	Pine Piano	PinePiano
+5852	Pine Platform	PinePlatform
+5853	Pine Sink	PineSink
+5854	Pine Sofa	PineSofa
+5855	Pine Toilet	PineToilet
+5856	Pine Work Bench	PineWorkbench
+5857	Trapped Pine Chest	Fake_PineChest
+5858	Easter Bathtub	EasterBathtub
+5859	Easter Bed	EasterBed
+5860	Easter Bookcase	EasterBookcase
+5861	Easter Candelabra	EasterCandelabra
+5862	Easter Candle	EasterCandle
+5863	Easter Chair	EasterChair
+5864	Easter Chandelier	EasterChandelier
+5865	Easter Chest	EasterChest
+5866	Easter Clock	EasterClock
+5867	Easter Door	EasterDoor
+5868	Easter Dresser	EasterDresser
+5869	Easter Lamp	EasterLamp
+5870	Easter Lantern	EasterLantern
+5871	Easter Piano	EasterPiano
+5872	Easter Platform	EasterPlatform
+5873	Easter Sink	EasterSink
+5874	Easter Sofa	EasterSofa
+5875	Easter Table	EasterTable
+5876	Easter Toilet	EasterToilet
+5877	Easter Work Bench	EasterWorkbench
+5878	Trapped Easter Chest	Fake_EasterChest
+5879	Stone Bathtub	StoneBathtub
+5880	Stone Bed	StoneBed
+5881	Stone Bookcase	StoneBookcase
+5882	Stone Candelabra	StoneCandelabra
+5883	Stone Candle	StoneCandle
+5884	Stone Chair	StoneChair
+5885	Stone Chandelier	StoneChandelier
+5886	Stone Chest	StoneChest
+5887	Stone Clock	StoneClock
+5888	Stone Dresser	StoneDresser
+5889	Stone Lamp	StoneLamp
+5890	Stone Lantern	StoneLantern
+5891	Stone Piano	StonePiano
+5892	Stone Sink	StoneSink
+5893	Stone Sofa	StoneSofa
+5894	Stone Table	StoneTable
+5895	Stone Toilet	StoneToilet
+5896	Stone Work Bench	StoneWorkbench
+5897	Trapped Stone Chest	Fake_StoneChest
+5898	Jellyfish Bathtub	JellyfishBathtub
+5899	Jellyfish Bed	JellyfishBed
+5900	Jellyfish Bookcase	JellyfishBookcase
+5901	Jellyfish Candelabra	JellyfishCandelabra
+5902	Jellyfish Candle	JellyfishCandle
+5903	Jellyfish Chair	JellyfishChair
+5904	Jellyfish Chandelier	JellyfishChandelier
+5905	Jellyfish Chest	JellyfishChest
+5906	Jellyfish Clock	JellyfishClock
+5907	Jellyfish Door	JellyfishDoor
+5908	Jellyfish Dresser	JellyfishDresser
+5909	Jellyfish Lamp	JellyfishLamp
+5910	Jellyfish Lantern	JellyfishLantern
+5911	Jellyfish Piano	JellyfishPiano
+5912	Jellyfish Platform	JellyfishPlatform
+5913	Jellyfish Sink	JellyfishSink
+5914	Jellyfish Sofa	JellyfishSofa
+5915	Jellyfish Table	JellyfishTable
+5916	Jellyfish Toilet	JellyfishToilet
+5917	Jellyfish Work Bench	JellyfishWorkbench
+5918	Trapped Jellyfish Chest	Fake_JellyfishChest
+5919	Pine Tree Wall	PineTreeBlockWall
+5920	Easter Block	EasterBlock
+5921	Easter Wall	EasterBlockWall
+5922	Gothic Brick	GothicBrick
+5923	Gothic Brick Wall	GothicBrickWall
+5924	Flinx Fur Block	FlinxFurBlock
+5925	Flinx Fur Wall	FlinxFurBlockWall
+5926	Jellyfish Block	JellyfishBlock
+5927	Jellyfish Wall	JellyfishBlockWall
+5928	Toybreaker Brick	ToyBreakerBlock
+5929	Remix	PaintingRemix
+5930	Pine Wood	PineWoodBlock
+5931	Pine Wood Wall	PineWoodBlockWall
+5932	Harpy Bathtub	HarpyBathtub
+5933	Harpy Bed	HarpyBed
+5934	Harpy Bookcase	HarpyBookcase
+5935	Harpy Candelabra	HarpyCandelabra
+5936	Harpy Candle	HarpyCandle
+5937	Harpy Chair	HarpyChair
+5938	Harpy Chandelier	HarpyChandelier
+5939	Harpy Chest	HarpyChest
+5940	Harpy Clock	HarpyClock
+5941	Harpy Door	HarpyDoor
+5942	Harpy Dresser	HarpyDresser
+5943	Harpy Lamp	HarpyLamp
+5944	Harpy Lantern	HarpyLantern
+5945	Harpy Piano	HarpyPiano
+5946	Harpy Platform	HarpyPlatform
+5947	Harpy Sink	HarpySink
+5948	Harpy Sofa	HarpySofa
+5949	Harpy Table	HarpyTable
+5950	Harpy Toilet	HarpyToilet
+5951	Harpy Work Bench	HarpyWorkbench
+5952	Trapped Harpy Chest	Fake_HarpyChest
+5953	Harpy Block	HarpyBlock
+5954	Harpy Wall	HarpyBlockWall
+5955	Cloud Bathtub	CloudBathtub
+5956	Cloud Bed	CloudBed
+5957	Cloud Bookcase	CloudBookcase
+5958	Cloud Candelabra	CloudCandelabra
+5959	Cloud Candle	CloudCandle
+5960	Cloud Chair	CloudChair
+5961	Cloud Chandelier	CloudChandelier
+5962	Cloud Chest	CloudChest
+5963	Cloud Clock	CloudClock
+5964	Cloud Door	CloudDoor
+5965	Cloud Dresser	CloudDresser
+5966	Cloud Lamp	CloudLamp
+5967	Cloud Lantern	CloudLantern
+5968	Cloud Piano	CloudPiano
+5969	Cloud Sink	CloudSink
+5970	Cloud Sofa	CloudSofa
+5971	Cloud Table	CloudTable
+5972	Cloud Toilet	CloudToilet
+5973	Cloud Work Bench	CloudWorkbench
+5974	Trapped Cloud Chest	Fake_CloudChest
+5975	Duskware Bathtub	MoonplateBathtub
+5976	Duskware Bed	MoonplateBed
+5977	Duskware Bookcase	MoonplateBookcase
+5978	Duskware Candelabra	MoonplateCandelabra
+5979	Duskware Candle	MoonplateCandle
+5980	Duskware Chair	MoonplateChair
+5981	Duskware Chandelier	MoonplateChandelier
+5982	Duskware Chest	MoonplateChest
+5983	Duskware Clock	MoonplateClock
+5984	Duskware Door	MoonplateDoor
+5985	Duskware Dresser	MoonplateDresser
+5986	Duskware Lamp	MoonplateLamp
+5987	Duskware Lantern	MoonplateLantern
+5988	Duskware Piano	MoonplatePiano
+5989	Duskware Platform	MoonplatePlatform
+5990	Duskware Sink	MoonplateSink
+5991	Duskware Sofa	MoonplateSofa
+5992	Duskware Table	MoonplateTable
+5993	Duskware Toilet	MoonplateToilet
+5994	Duskware Work Bench	MoonplateWorkbench
+5995	Trapped Duskware Chest	Fake_MoonplateChest
+5996	Moonplate Block	MoonplateBlock
+5997	Crescent Wall	MoonplateBlockWall
+5998	Librarian Bathtub	LibrarianBathtub
+5999	Librarian Bed	LibrarianBed
+6000	Librarian Bookcase	LibrarianBookcase
+6001	Librarian Candelabra	LibrarianCandelabra
+6002	Librarian Candle	LibrarianCandle
+6003	Librarian Chair	LibrarianChair
+6004	Librarian Chandelier	LibrarianChandelier
+6005	Librarian Chest	LibrarianChest
+6006	Librarian Clock	LibrarianClock
+6007	Librarian Door	LibrarianDoor
+6008	Librarian Dresser	LibrarianDresser
+6009	Librarian Lamp	LibrarianLamp
+6010	Librarian Lantern	LibrarianLantern
+6011	Librarian Piano	LibrarianPiano
+6012	Librarian Platform	LibrarianPlatform
+6013	Librarian Sink	LibrarianSink
+6014	Librarian Sofa	LibrarianSofa
+6015	Librarian Table	LibrarianTable
+6016	Librarian Toilet	LibrarianToilet
+6017	Librarian Work Bench	LibrarianWorkbench
+6018	Trapped Librarian Chest	Fake_LibrarianChest
+6019	Librarian Block	LibrarianBlock
+6020	Librarian Wall	LibrarianBlockWall
+6021	Spike Bathtub	SpikeBathtub
+6022	Spike Bed	SpikeBed
+6023	Spike Bookcase	SpikeBookcase
+6024	Spike Candelabra	SpikeCandelabra
+6025	Spike Candle	SpikeCandle
+6026	Spike Chair	SpikeChair
+6027	Spike Chandelier	SpikeChandelier
+6028	Spike Chest	SpikeChest
+6029	Spike Clock	SpikeClock
+6030	Spike Door	SpikeDoor
+6031	Spike Dresser	SpikeDresser
+6032	Spike Lamp	SpikeLamp
+6033	Spike Lantern	SpikeLantern
+6034	Spike Piano	SpikePiano
+6035	Spike Platform	SpikePlatform
+6036	Spike Sink	SpikeSink
+6037	Spike Sofa	SpikeSofa
+6038	Spike Table	SpikeTable
+6039	Spike Toilet	SpikeToilet
+6040	Spike Work Bench	SpikeWorkbench
+6041	Trapped Spike Chest	Fake_SpikeChest
+6042	Spike Block	SpikeBlock
+6043	Spike Wall	SpikeBlockWall
+6044	Office Bathtub	OfficeBathtub
+6045	Office Bed	OfficeBed
+6046	Office Bookcase	OfficeBookcase
+6047	Office Candelabra	OfficeCandelabra
+6048	Office Candle	OfficeCandle
+6049	Office Chair	OfficeChair
+6050	Office Chandelier	OfficeChandelier
+6051	Office Chest	OfficeChest
+6052	Office Clock	OfficeClock
+6053	Office Door	OfficeDoor
+6054	Office Dresser	OfficeDresser
+6055	Office Lamp	OfficeLamp
+6056	Office Lantern	OfficeLantern
+6057	Office Piano	OfficePiano
+6058	Office Platform	OfficePlatform
+6059	Office Sink	OfficeSink
+6060	Office Sofa	OfficeSofa
+6061	Office Table	OfficeTable
+6062	Office Toilet	OfficeToilet
+6063	Office Work Bench	OfficeWorkbench
+6064	Trapped Office Chest	Fake_OfficeChest
+6065	Office Block	OfficeBlock
+6066	Office Wall	OfficeBlockWall
+6067	Forbidden Bathtub	ForbiddenBathtub
+6068	Forbidden Bed	ForbiddenBed
+6069	Forbidden Bookcase	ForbiddenBookcase
+6070	Forbidden Candelabra	ForbiddenCandelabra
+6071	Forbidden Candle	ForbiddenCandle
+6072	Forbidden Chair	ForbiddenChair
+6073	Forbidden Chandelier	ForbiddenChandelier
+6074	Forbidden Chest	ForbiddenChest
+6075	Forbidden Clock	ForbiddenClock
+6076	Forbidden Door	ForbiddenDoor
+6077	Forbidden Dresser	ForbiddenDresser
+6078	Forbidden Lamp	ForbiddenLamp
+6079	Forbidden Lantern	ForbiddenLantern
+6080	Forbidden Piano	ForbiddenPiano
+6081	Forbidden Platform	ForbiddenPlatform
+6082	Forbidden Sink	ForbiddenSink
+6083	Forbidden Sofa	ForbiddenSofa
+6084	Forbidden Table	ForbiddenTable
+6085	Forbidden Toilet	ForbiddenToilet
+6086	Forbidden Work Bench	ForbiddenWorkbench
+6087	Trapped Forbidden Chest	Fake_ForbiddenChest
+6088	Forbidden Block	ForbiddenBlock
+6089	Forbidden Wall	ForbiddenBlockWall
+6090	Aquarium Bathtub	WaterBathtub
+6091	Aquarium Bed	WaterBed
+6092	Aquarium Bookcase	WaterBookcase
+6093	Aquarium Candelabra	WaterCandelabra
+6094	Aquarium Candle	WaterFurnitureCandle
+6095	Aquarium Chair	WaterChair
+6096	Aquarium Chandelier	WaterChandelier
+6097	Aquarium Clock	WaterClock
+6098	Aquarium Door	WaterDoor
+6099	Aquarium Dresser	WaterDresser
+6100	Aquarium Lamp	WaterLamp
+6101	Aquarium Lantern	WaterLantern
+6102	Aquarium Piano	WaterPiano
+6103	Aquarium Platform	WaterPlatform
+6104	Aquarium Sink	WaterSink
+6105	Aquarium Sofa	WaterSofa
+6106	Aquarium Table	WaterTable
+6107	Aquarium Toilet	WaterToilet
+6108	Aquarium Work Bench	WaterWorkbench
+6109	Aquarium Block	WaterBlock
+6110	Aquarium Wall	WaterBlockWall
+6111	Boulder Bathtub	BoulderBathtub
+6112	Boulder Bed	BoulderBed
+6113	Boulder Bookcase	BoulderBookcase
+6114	Boulder Candelabra	BoulderCandelabra
+6115	Boulder Candle	BoulderCandle
+6116	Boulder Chair	BoulderChair
+6117	Boulder Chandelier	BoulderChandelier
+6118	Boulder Chest	BoulderChest
+6119	Boulder Clock	BoulderClock
+6120	Boulder Door	BoulderDoor
+6121	Boulder Dresser	BoulderDresser
+6122	Boulder Lamp	BoulderLamp
+6123	Boulder Lantern	BoulderLantern
+6124	Boulder Piano	BoulderPiano
+6125	Boulder Platform	BoulderPlatform
+6126	Boulder Sink	BoulderSink
+6127	Boulder Sofa	BoulderSofa
+6128	Boulder Table	BoulderTable
+6129	Boulder Toilet	BoulderToilet
+6130	Boulder Work Bench	BoulderWorkbench
+6131	Trapped Boulder Chest	Fake_BoulderChest
+6132	Boulder Block	BoulderBlock
+6133	Boulder Wall	BoulderBlockWall
+6134	Sharp Spike Block	DamagingSpikeBlock
+6135	Demon Altar	DemonAltarIcon
+6136	Crimson Altar	CrimsonAltarIcon
+6137	Luna's Runic Pixie Hood	LunasHead
+6138	Luna's Runic Pixie Shirt	LunasBody
+6139	Luna's Runic Pixie Pants	LunasLegs
+6140	Luna's Runic Pixie Wings	LunasWings
+6141	Luna's Runic Pixie Cloak	LunasCloak
+6142	Huge Dragon Egg	PalworldChilletEgg
+6143	n/a (No official name)	FoxparksTagEffect
+6144	Music Box (Skeletron)	MusicBoxSkeletron
