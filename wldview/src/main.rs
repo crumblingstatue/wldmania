@@ -90,6 +90,7 @@ struct ViewerState {
     tile_x: f32,
     tile_y: f32,
     scale: u8,
+    map_tex: Option<Texture2D>,
 }
 
 impl Default for ViewerState {
@@ -100,6 +101,7 @@ impl Default for ViewerState {
             tile_x: 0.0,
             tile_y: 0.0,
             scale: 1,
+            map_tex: None,
         }
     }
 }
@@ -107,17 +109,21 @@ impl Default for ViewerState {
 #[macroquad::main("egui with macroquad")]
 async fn main() -> anyhow::Result<()> {
     let mut world_base = None;
-    let mut map_tex = None;
     let mut cfg = Config::load_or_default()?;
     let mut tiles = Vec::new();
     prevent_quit();
+    let mut viewer = ViewerState::default();
     if cfg.load_most_recent
         && let Some(most_recent) = cfg.recent_files.most_recent().cloned()
-        && load_world(&most_recent, &mut world_base, &mut tiles, &mut map_tex)
+        && load_world(
+            &most_recent,
+            &mut world_base,
+            &mut tiles,
+            &mut viewer.map_tex,
+        )
     {
         cfg.recent_files.use_(most_recent);
     }
-    let mut viewer = ViewerState::default();
     let (sender, receiver) = std::sync::mpsc::channel();
     let mut ui_state = UiState::default();
     if let Some(world_base) = &world_base
@@ -141,7 +147,7 @@ async fn main() -> anyhow::Result<()> {
         // Process keys, mouse etc.
 
         if let Some(world_base) = &mut world_base {
-            if let Some(tex) = &map_tex {
+            if let Some(tex) = &viewer.map_tex {
                 let header = &world_base.header;
                 draw_texture_ex(
                     tex,
@@ -164,7 +170,7 @@ async fn main() -> anyhow::Result<()> {
                 tiles = tiles_;
                 let tex = Texture2D::from_image(&img);
                 tex.set_filter(FilterMode::Nearest);
-                map_tex = Some(tex);
+                viewer.map_tex = Some(tex);
                 ui_state.loading_tiles = false;
             }
         }
@@ -178,12 +184,11 @@ async fn main() -> anyhow::Result<()> {
             egui_mq.ui(|_, egui_ctx| {
                 egui_ui(
                     egui_ctx,
-                    &viewer,
+                    &mut viewer,
                     &mut ui_state,
                     &mut cfg,
                     &mut world_base,
                     &mut tiles,
-                    &mut map_tex,
                     &item_id_map,
                     &sender,
                 );
@@ -280,12 +285,11 @@ async fn main() -> anyhow::Result<()> {
 
 fn egui_ui(
     egui_ctx: &egui::Context,
-    view: &ViewerState,
+    view: &mut ViewerState,
     ui_state: &mut UiState,
     cfg: &mut Config,
     world_base: &mut Option<WorldBase>,
     tiles: &mut Vec<Tile>,
-    map_tex: &mut Option<Texture2D>,
     item_id_map: &ItemIdMap,
     sender: &Sender<(Vec<Tile>, Image)>,
 ) {
@@ -300,7 +304,7 @@ fn egui_ui(
                 ui.menu_button("Recent", |ui| {
                     for recent in cfg.recent_files.iter() {
                         if ui.button(recent.display().to_string()).clicked() {
-                            load_world(recent, world_base, tiles, map_tex);
+                            load_world(recent, world_base, tiles, &mut view.map_tex);
                             used = Some(recent.to_owned());
                             break;
                         }
@@ -320,7 +324,7 @@ fn egui_ui(
     });
     ui_state.file_dia.update(egui_ctx);
     if let Some(path) = ui_state.file_dia.take_picked()
-        && load_world(&path, world_base, tiles, map_tex)
+        && load_world(&path, world_base, tiles, &mut view.map_tex)
     {
         cfg.recent_files.use_(path);
     }
