@@ -19,10 +19,8 @@ struct WorldBase {
 }
 
 struct ViewerState {
-    cam_x: f32,
-    cam_y: f32,
-    tile_x: f32,
-    tile_y: f32,
+    cam: Vec2,
+    pointed_tile: Vec2,
     scale: u8,
     map_tex: Option<Texture2D>,
 }
@@ -30,10 +28,8 @@ struct ViewerState {
 impl Default for ViewerState {
     fn default() -> Self {
         Self {
-            cam_x: 0.0,
-            cam_y: 0.0,
-            tile_x: 0.0,
-            tile_y: 0.0,
+            cam: Vec2::default(),
+            pointed_tile: Vec2::default(),
             scale: 1,
             map_tex: None,
         }
@@ -94,8 +90,8 @@ async fn main() -> anyhow::Result<()> {
                 let header = &world_base.header;
                 draw_texture_ex(
                     tex,
-                    viewer.cam_x,
-                    viewer.cam_y,
+                    viewer.cam.x,
+                    viewer.cam.y,
                     WHITE,
                     DrawTextureParams {
                         dest_size: Some(vec2(
@@ -118,9 +114,8 @@ async fn main() -> anyhow::Result<()> {
             }
         }
 
-        let mp = mouse_position();
-        viewer.tile_x = f32::floor(mp.0 / viewer.scale as f32 - viewer.cam_x / viewer.scale as f32);
-        viewer.tile_y = f32::floor(mp.1 / viewer.scale as f32 - viewer.cam_y / viewer.scale as f32);
+        let mp = Vec2::from(mouse_position());
+        viewer.pointed_tile = mp.to_tile(viewer.scale) - viewer.cam.to_tile(viewer.scale);
         ui_state.egui_wants_pointer = false;
 
         if cfg.draw_center_marker {
@@ -147,18 +142,18 @@ async fn main() -> anyhow::Result<()> {
         }
 
         if is_key_pressed(KeyCode::KpAdd) {
-            viewer.cam_x *= 2.;
-            viewer.cam_x -= screen_width() / 2.;
-            viewer.cam_y *= 2.;
-            viewer.cam_y -= screen_height() / 2.;
+            viewer.cam.x *= 2.;
+            viewer.cam.x -= screen_width() / 2.;
+            viewer.cam.y *= 2.;
+            viewer.cam.y -= screen_height() / 2.;
             viewer.scale *= 2;
         }
 
         if is_key_pressed(KeyCode::KpSubtract) && viewer.scale > 1 {
-            viewer.cam_x += screen_width() / 2.;
-            viewer.cam_x /= 2.;
-            viewer.cam_y += screen_height() / 2.;
-            viewer.cam_y /= 2.;
+            viewer.cam.x += screen_width() / 2.;
+            viewer.cam.x /= 2.;
+            viewer.cam.y += screen_height() / 2.;
+            viewer.cam.y /= 2.;
             viewer.scale /= 2;
         }
 
@@ -185,8 +180,8 @@ async fn main() -> anyhow::Result<()> {
                         chest.y,
                         2,
                         2,
-                        viewer.tile_x as u16,
-                        viewer.tile_y as u16,
+                        viewer.pointed_tile.x as u16,
+                        viewer.pointed_tile.y as u16,
                     ) {
                         ui_state.selected_chest = Some(i);
                     }
@@ -197,26 +192,26 @@ async fn main() -> anyhow::Result<()> {
         let speed = 16.0;
 
         if is_key_down(KeyCode::Left) {
-            viewer.cam_x += speed;
+            viewer.cam.x += speed;
         }
         if is_key_down(KeyCode::Right) {
-            viewer.cam_x -= speed;
+            viewer.cam.x -= speed;
         }
         if is_key_down(KeyCode::Up) {
-            viewer.cam_y += speed;
+            viewer.cam.y += speed;
         }
         if is_key_down(KeyCode::Down) {
-            viewer.cam_y -= speed;
+            viewer.cam.y -= speed;
         }
 
         if let Some(world_base) = &world.base {
-            viewer.cam_x = clamp(
-                viewer.cam_x,
+            viewer.cam.x = clamp(
+                viewer.cam.x,
                 -(world_base.header.width as f32 * viewer.scale as f32) + screen_width() / 2.,
                 screen_width() / 2.,
             );
-            viewer.cam_y = clamp(
-                viewer.cam_y,
+            viewer.cam.y = clamp(
+                viewer.cam.y,
                 -(world_base.header.height as f32 * viewer.scale as f32) + screen_height() / 2.,
                 screen_height() / 2.,
             );
@@ -395,5 +390,19 @@ fn tile_color(tile: &Tile) -> Option<Color> {
             83 => Color::from_rgba(59, 8, 8, 255),
             _ => Color::from_rgba(180, 0, 180, 255),
         })
+    }
+}
+
+trait MqVec2Ext {
+    fn to_tile(&self, scale: u8) -> Self;
+}
+
+impl MqVec2Ext for Vec2 {
+    fn to_tile(&self, scale: u8) -> Self {
+        let scale = scale as f32;
+        Self {
+            x: f32::floor(self.x / scale),
+            y: f32::floor(self.y / scale),
+        }
     }
 }

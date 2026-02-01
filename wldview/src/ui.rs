@@ -137,10 +137,13 @@ pub fn egui_ui(
                             )
                         );
                         if let Some(tile) = world.tiles.get(
-                            view.tile_y as usize * world_base.header.width as usize
-                                + view.tile_x as usize,
+                            view.pointed_tile.y as usize * world_base.header.width as usize
+                                + view.pointed_tile.x as usize,
                         ) {
-                            field!("Pointing at", format!("{}, {}", view.tile_x, view.tile_y));
+                            field!(
+                                "Pointing at",
+                                format!("{}, {}", view.pointed_tile.x, view.pointed_tile.y)
+                            );
                             match tile.front {
                                 Some(id) => field!("Tile", id),
                                 None => field!("Tile", "[none]"),
@@ -159,8 +162,8 @@ pub fn egui_ui(
                                 }
                             );
                         }
-                        field!("cam x", view.cam_x);
-                        field!("cam y", view.cam_y);
+                        field!("cam x", view.cam.x);
+                        field!("cam y", view.cam.y);
                     });
             })
         });
