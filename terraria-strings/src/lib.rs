@@ -1,4 +1,4 @@
-pub struct ItemIdMap(Vec<(u16, &'static str)>);
+pub struct ItemIdMap(pub Vec<(u16, &'static str)>);
 
 impl ItemIdMap {
     pub fn name_by_id(&self, id: u16) -> Option<&str> {

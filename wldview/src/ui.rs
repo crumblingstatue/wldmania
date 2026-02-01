@@ -34,6 +34,8 @@ pub struct UiState {
     file_dia: FileDialog,
     chests_window: bool,
     chest_filter: String,
+    // Cached value of how many chests were shown previous frame
+    chests_shown_cache: usize,
 }
 
 pub fn egui_ui(
@@ -207,25 +209,43 @@ pub fn egui_ui(
                     egui::TextEdit::singleline(&mut ui_state.chest_filter)
                         .hint_text("Item name or id"),
                 );
-                let contains_id_filter = if ui_state.chest_filter.is_empty() {
-                    None
-                } else {
+                let mut filtered_ids = Vec::new();
+                if !ui_state.chest_filter.is_empty() {
                     match ui_state.chest_filter.parse::<u16>() {
-                        Ok(id) => Some(id),
-                        Err(_) => world
-                            .item_id_map
-                            .id_by_name(&ui_state.chest_filter)
-                            .map(|id| id),
+                        Ok(id) => filtered_ids.push(id),
+                        Err(_) => {
+                            // Search through item names to find matching
+                            for (id, name) in &world.item_id_map.0 {
+                                if name
+                                    .to_ascii_lowercase()
+                                    .contains(&ui_state.chest_filter.to_ascii_lowercase())
+                                {
+                                    filtered_ids.push(*id);
+                                }
+                            }
+                        }
                     }
-                };
+                    ui.label(format!("Filter matches {} ids", filtered_ids.len()));
+                }
+                ui.label(format!("{} chests shown", ui_state.chests_shown_cache));
+
+                ui.separator();
+
+                ui_state.chests_shown_cache = 0;
+
                 egui::ScrollArea::vertical().show(ui, |ui| {
                     for (i, chest) in world_base.chests.iter().enumerate() {
                         // Skip filtered chests
-                        if let Some(id) = contains_id_filter
-                            && !chest.items.iter().any(|item| item.id == id as i32)
+                        if !ui_state.chest_filter.is_empty()
+                            && filtered_ids
+                                .iter()
+                                .all(|&id| !chest.items.iter().any(|item| item.id == id as i32))
                         {
                             continue;
                         }
+
+                        ui_state.chests_shown_cache += 1;
+
                         let name = if chest.name.is_empty() {
                             "<unnamed>"
                         } else {
