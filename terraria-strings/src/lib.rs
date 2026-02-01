@@ -13,7 +13,11 @@ pub fn item_ids() -> ItemIdMap {
     let mut item_ids = Vec::new();
     for line in ITEM_ID_LIST.lines() {
         let mut parts = line.split('\t');
-        let id: u16 = parts.next().unwrap().parse().unwrap();
+        let id: u16 = parts
+            .next()
+            .unwrap()
+            .parse()
+            .unwrap_or_else(|e| panic!("Error parsing int for line '{line}': {e}"));
         let name = parts.next().unwrap();
         item_ids.push((id, name));
     }
