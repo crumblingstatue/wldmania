@@ -24,5 +24,5 @@ pub fn item_ids() -> ItemIdMap {
     ItemIdMap(item_ids)
 }
 
-/// These are taken from https://terraria.fandom.com/wiki/Item_IDs
+/// These are taken from https://terraria.wiki.gg/wiki/Item_IDs
 static ITEM_ID_LIST: &str = include_str!("../item_id_list.txt");
