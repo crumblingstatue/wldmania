@@ -73,12 +73,18 @@ macro_rules! field_macro {
     };
 }
 
+#[derive(Default)]
+struct UiState {
+    selected_chest: Option<usize>,
+    loading_tiles: bool,
+    hide_ui: bool,
+}
+
 #[macroquad::main("egui with macroquad")]
 async fn main() -> anyhow::Result<()> {
     let mut world_base = None;
     let mut map_tex = None;
     let mut cfg = Config::load_or_default()?;
-    let mut show_ui = true;
     let mut tiles = Vec::new();
     prevent_quit();
     if cfg.load_most_recent
@@ -91,7 +97,7 @@ async fn main() -> anyhow::Result<()> {
     let mut cam_y = 0.0;
     let mut scale = 1;
     let (sender, receiver) = std::sync::mpsc::channel();
-    let mut loading_tiles = false;
+    let mut ui_state = UiState::default();
     if let Some(world_base) = &world_base
         && cfg.load_tiles_at_start
     {
@@ -103,9 +109,8 @@ async fn main() -> anyhow::Result<()> {
             let ret_val = load_tiles(&file, &base_header, &header);
             sender.send(ret_val).unwrap();
         });
-        loading_tiles = true;
+        ui_state.loading_tiles = true;
     }
-    let mut selected_chest = None;
     let item_id_map = terraria_strings::item_ids();
     let mut egui_mq = EguiMqInteg::new();
     let mut file_dia = FileDialog::new();
@@ -139,7 +144,7 @@ async fn main() -> anyhow::Result<()> {
                 let tex = Texture2D::from_image(&img);
                 tex.set_filter(FilterMode::Nearest);
                 map_tex = Some(tex);
-                loading_tiles = false;
+                ui_state.loading_tiles = false;
             }
         }
 
@@ -148,7 +153,7 @@ async fn main() -> anyhow::Result<()> {
         let tile_y = f32::floor(mp.1 / scale as f32 - cam_y / scale as f32);
         let mut egui_wants_pointer = false;
 
-        if show_ui {
+        if !ui_state.hide_ui {
             egui_mq.ui(|_, egui_ctx| {
                 TopBottomPanel::top("top_panel").show(egui_ctx, |ui| {
                     ui.horizontal(|ui| {
@@ -207,7 +212,7 @@ async fn main() -> anyhow::Result<()> {
                             });
                             ui.separator();
                             ui.heading("Header");
-                            if !loading_tiles {
+                            if !ui_state.loading_tiles {
                                 if ui.button("Load tiles").clicked() {
                                     let base_header = world_base.base_header.clone();
                                     let header = world_base.header.clone();
@@ -217,7 +222,7 @@ async fn main() -> anyhow::Result<()> {
                                         let ret_val = load_tiles(&file, &base_header, &header);
                                         sender.send(ret_val).unwrap();
                                     });
-                                    loading_tiles = true;
+                                    ui_state.loading_tiles = true;
                                 }
                             } else {
                                 ui.horizontal(|ui| {
@@ -289,7 +294,7 @@ async fn main() -> anyhow::Result<()> {
                                 });
                         })
                     });
-                    if let Some(index) = selected_chest {
+                    if let Some(index) = ui_state.selected_chest {
                         let chest: &Chest = &world_base.chests[index];
                         let chest_name_fmt: String;
                         let label = if chest.name.is_empty() {
@@ -341,7 +346,7 @@ async fn main() -> anyhow::Result<()> {
         }
 
         if is_key_pressed(KeyCode::F12) {
-            show_ui ^= true;
+            ui_state.hide_ui ^= true;
         }
 
         if is_key_pressed(KeyCode::KpAdd) {
@@ -361,11 +366,11 @@ async fn main() -> anyhow::Result<()> {
         }
 
         if !egui_wants_pointer && is_mouse_button_pressed(MouseButton::Left) {
-            selected_chest = None;
+            ui_state.selected_chest = None;
             if let Some(world_base) = &world_base {
                 for (i, chest) in world_base.chests.iter().enumerate() {
                     if rect_contains_point(chest.x, chest.y, 2, 2, tile_x as u16, tile_y as u16) {
-                        selected_chest = Some(i);
+                        ui_state.selected_chest = Some(i);
                     }
                 }
             }
