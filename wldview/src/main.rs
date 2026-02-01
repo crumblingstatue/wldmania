@@ -133,20 +133,6 @@ async fn main() -> anyhow::Result<()> {
         let tile_y = f32::floor(mp.1 / viewer.scale as f32 - viewer.cam_y / viewer.scale as f32);
         ui_state.egui_wants_pointer = false;
 
-        if !ui_state.hide_ui {
-            egui_mq.ui(|_, egui_ctx| {
-                ui::egui_ui(
-                    egui_ctx,
-                    &mut world,
-                    &mut viewer,
-                    &mut ui_state,
-                    &mut cfg,
-                    &sender,
-                );
-            });
-            egui_mq.draw();
-        }
-
         if cfg.draw_center_marker {
             draw_line(
                 screen_width() / 2.,
@@ -184,6 +170,20 @@ async fn main() -> anyhow::Result<()> {
             viewer.cam_y += screen_height() / 2.;
             viewer.cam_y /= 2.;
             viewer.scale /= 2;
+        }
+
+        if !ui_state.hide_ui {
+            egui_mq.ui(|_, egui_ctx| {
+                ui::egui_ui(
+                    egui_ctx,
+                    &mut world,
+                    &mut viewer,
+                    &mut ui_state,
+                    &mut cfg,
+                    &sender,
+                );
+            });
+            egui_mq.draw();
         }
 
         if !ui_state.egui_wants_pointer && is_mouse_button_pressed(MouseButton::Left) {
