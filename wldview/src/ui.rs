@@ -1,5 +1,6 @@
 use {
-    crate::{Config, UiState, ViewerState, WorldState, load_tiles, load_world},
+    crate::{Config, ViewerState, WorldState, load_tiles, load_world},
+    egui_file_dialog::FileDialog,
     egui_macroquad::{egui, macroquad::texture::Image},
     std::sync::mpsc::Sender,
     terraria_wld::{Chest, Liquid, Tile},
@@ -15,6 +16,15 @@ macro_rules! field_macro {
             }};
         }
     };
+}
+
+#[derive(Default)]
+pub struct UiState {
+    pub egui_wants_pointer: bool,
+    pub selected_chest: Option<usize>,
+    pub loading_tiles: bool,
+    pub hide_ui: bool,
+    file_dia: FileDialog,
 }
 
 pub fn egui_ui(

@@ -1,6 +1,5 @@
 use {
-    crate::config::Config,
-    egui_file_dialog::FileDialog,
+    crate::{config::Config, ui::UiState},
     egui_macroquad::{EguiMqInteg, macroquad},
     macroquad::prelude::*,
     std::{fs::File, ops::Add, path::Path},
@@ -17,15 +16,6 @@ struct WorldBase {
     header: Header,
     chests: Vec<Chest>,
     file: File,
-}
-
-#[derive(Default)]
-struct UiState {
-    selected_chest: Option<usize>,
-    loading_tiles: bool,
-    hide_ui: bool,
-    file_dia: FileDialog,
-    egui_wants_pointer: bool,
 }
 
 struct ViewerState {
