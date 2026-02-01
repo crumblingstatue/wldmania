@@ -119,8 +119,8 @@ async fn main() -> anyhow::Result<()> {
         }
 
         let mp = mouse_position();
-        let tile_x = f32::floor(mp.0 / viewer.scale as f32 - viewer.cam_x / viewer.scale as f32);
-        let tile_y = f32::floor(mp.1 / viewer.scale as f32 - viewer.cam_y / viewer.scale as f32);
+        viewer.tile_x = f32::floor(mp.0 / viewer.scale as f32 - viewer.cam_x / viewer.scale as f32);
+        viewer.tile_y = f32::floor(mp.1 / viewer.scale as f32 - viewer.cam_y / viewer.scale as f32);
         ui_state.egui_wants_pointer = false;
 
         if cfg.draw_center_marker {
@@ -180,7 +180,14 @@ async fn main() -> anyhow::Result<()> {
             ui_state.selected_chest = None;
             if let Some(world_base) = &world.base {
                 for (i, chest) in world_base.chests.iter().enumerate() {
-                    if rect_contains_point(chest.x, chest.y, 2, 2, tile_x as u16, tile_y as u16) {
+                    if rect_contains_point(
+                        chest.x,
+                        chest.y,
+                        2,
+                        2,
+                        viewer.tile_x as u16,
+                        viewer.tile_y as u16,
+                    ) {
                         ui_state.selected_chest = Some(i);
                     }
                 }
