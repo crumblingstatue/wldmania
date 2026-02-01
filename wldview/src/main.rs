@@ -106,27 +106,37 @@ impl Default for ViewerState {
     }
 }
 
+pub struct WorldState {
+    base: Option<WorldBase>,
+    tiles: Vec<Tile>,
+    item_id_map: ItemIdMap,
+}
+
+impl Default for WorldState {
+    fn default() -> Self {
+        Self {
+            base: None,
+            tiles: Vec::default(),
+            item_id_map: terraria_strings::item_ids(),
+        }
+    }
+}
+
 #[macroquad::main("egui with macroquad")]
 async fn main() -> anyhow::Result<()> {
-    let mut world_base = None;
     let mut cfg = Config::load_or_default()?;
-    let mut tiles = Vec::new();
     prevent_quit();
     let mut viewer = ViewerState::default();
+    let mut world = WorldState::default();
     if cfg.load_most_recent
         && let Some(most_recent) = cfg.recent_files.most_recent().cloned()
-        && load_world(
-            &most_recent,
-            &mut world_base,
-            &mut tiles,
-            &mut viewer.map_tex,
-        )
+        && load_world(&most_recent, &mut world, &mut viewer.map_tex)
     {
         cfg.recent_files.use_(most_recent);
     }
     let (sender, receiver) = std::sync::mpsc::channel();
     let mut ui_state = UiState::default();
-    if let Some(world_base) = &world_base
+    if let Some(world_base) = &world.base
         && cfg.load_tiles_at_start
     {
         let base_header = world_base.base_header.clone();
@@ -139,14 +149,13 @@ async fn main() -> anyhow::Result<()> {
         });
         ui_state.loading_tiles = true;
     }
-    let item_id_map = terraria_strings::item_ids();
     let mut egui_mq = EguiMqInteg::new();
     loop {
         clear_background(BLACK);
 
         // Process keys, mouse etc.
 
-        if let Some(world_base) = &mut world_base {
+        if let Some(world_base) = &mut world.base {
             if let Some(tex) = &viewer.map_tex {
                 let header = &world_base.header;
                 draw_texture_ex(
@@ -167,7 +176,7 @@ async fn main() -> anyhow::Result<()> {
                     },
                 );
             } else if let Ok((tiles_, img)) = receiver.try_recv() {
-                tiles = tiles_;
+                world.tiles = tiles_;
                 let tex = Texture2D::from_image(&img);
                 tex.set_filter(FilterMode::Nearest);
                 viewer.map_tex = Some(tex);
@@ -184,12 +193,10 @@ async fn main() -> anyhow::Result<()> {
             egui_mq.ui(|_, egui_ctx| {
                 egui_ui(
                     egui_ctx,
+                    &mut world,
                     &mut viewer,
                     &mut ui_state,
                     &mut cfg,
-                    &mut world_base,
-                    &mut tiles,
-                    &item_id_map,
                     &sender,
                 );
             });
@@ -237,7 +244,7 @@ async fn main() -> anyhow::Result<()> {
 
         if !ui_state.egui_wants_pointer && is_mouse_button_pressed(MouseButton::Left) {
             ui_state.selected_chest = None;
-            if let Some(world_base) = &world_base {
+            if let Some(world_base) = &world.base {
                 for (i, chest) in world_base.chests.iter().enumerate() {
                     if rect_contains_point(chest.x, chest.y, 2, 2, tile_x as u16, tile_y as u16) {
                         ui_state.selected_chest = Some(i);
@@ -261,7 +268,7 @@ async fn main() -> anyhow::Result<()> {
             viewer.cam_y -= speed;
         }
 
-        if let Some(world_base) = &world_base {
+        if let Some(world_base) = &world.base {
             viewer.cam_x = clamp(
                 viewer.cam_x,
                 -(world_base.header.width as f32 * viewer.scale as f32) + screen_width() / 2.,
@@ -285,12 +292,10 @@ async fn main() -> anyhow::Result<()> {
 
 fn egui_ui(
     egui_ctx: &egui::Context,
+    world: &mut WorldState,
     view: &mut ViewerState,
     ui_state: &mut UiState,
     cfg: &mut Config,
-    world_base: &mut Option<WorldBase>,
-    tiles: &mut Vec<Tile>,
-    item_id_map: &ItemIdMap,
     sender: &Sender<(Vec<Tile>, Image)>,
 ) {
     TopBottomPanel::top("top_panel").show(egui_ctx, |ui| {
@@ -304,7 +309,7 @@ fn egui_ui(
                 ui.menu_button("Recent", |ui| {
                     for recent in cfg.recent_files.iter() {
                         if ui.button(recent.display().to_string()).clicked() {
-                            load_world(recent, world_base, tiles, &mut view.map_tex);
+                            load_world(recent, world, &mut view.map_tex);
                             used = Some(recent.to_owned());
                             break;
                         }
@@ -324,11 +329,11 @@ fn egui_ui(
     });
     ui_state.file_dia.update(egui_ctx);
     if let Some(path) = ui_state.file_dia.take_picked()
-        && load_world(&path, world_base, tiles, &mut view.map_tex)
+        && load_world(&path, world, &mut view.map_tex)
     {
         cfg.recent_files.use_(path);
     }
-    if let Some(world_base) = world_base {
+    if let Some(world_base) = &world.base {
         Window::new("World").show(egui_ctx, |ui| {
             ScrollArea::vertical().show(ui, |ui| {
                 ui.set_height(600.0);
@@ -390,7 +395,7 @@ fn egui_ui(
                                 world_base.header.game_mode
                             )
                         );
-                        if let Some(tile) = tiles.get(
+                        if let Some(tile) = world.tiles.get(
                             view.tile_y as usize * world_base.header.width as usize
                                 + view.tile_x as usize,
                         ) {
@@ -430,7 +435,7 @@ fn egui_ui(
             Window::new(label).show(egui_ctx, |ui| {
                 for item in &chest.items {
                     if item.id != 0 {
-                        match item_id_map.name_by_id(item.id as u16) {
+                        match world.item_id_map.name_by_id(item.id as u16) {
                             Some(name) => ui.label(format!("{} x {}", name, item.stack)),
                             None => {
                                 ui.label(format!("Unknown item ({}) x {}", item.id, item.stack))
@@ -487,14 +492,9 @@ fn load_tiles(file: &File, base_header: &BaseHeader, header: &Header) -> (Vec<Ti
     (tiles, image)
 }
 
-fn load_world(
-    path: &Path,
-    world_base: &mut Option<WorldBase>,
-    tiles: &mut Vec<Tile>,
-    map_tex: &mut Option<Texture2D>,
-) -> bool {
+fn load_world(path: &Path, world: &mut WorldState, map_tex: &mut Option<Texture2D>) -> bool {
     // Reset some stuff when loading new world over an existing one
-    tiles.clear();
+    world.tiles.clear();
     *map_tex = None;
     match terraria_wld::open(path) {
         Ok((file, base_header)) => {
@@ -502,7 +502,7 @@ fn load_world(
                 terraria_wld::read_header(&file, base_header.offsets.header as u64).unwrap();
             let chests =
                 terraria_wld::read_chests(&file, base_header.offsets.chests as u64).unwrap();
-            *world_base = Some(WorldBase {
+            world.base = Some(WorldBase {
                 base_header,
                 header,
                 file,
