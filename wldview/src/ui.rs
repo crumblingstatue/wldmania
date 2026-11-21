@@ -1,13 +1,9 @@
 use {
     crate::{Config, MqVec2Ext, ViewerState, WorldState, load_tiles, load_world},
     egui_file_dialog::FileDialog,
-    egui_macroquad::{
+    egui_frogquad::{
         egui,
-        macroquad::{
-            math::vec2,
-            texture::Image,
-            window::{screen_height, screen_width},
-        },
+        frogquad::{glam::vec2, texture::Image},
     },
     std::sync::mpsc::Sender,
     terraria_wld::{Chest, Liquid, Tile},
@@ -39,14 +35,16 @@ pub struct UiState {
 }
 
 pub fn egui_ui(
-    egui_ctx: &egui::Context,
+    ui: &mut egui::Ui,
     world: &mut WorldState,
     view: &mut ViewerState,
     ui_state: &mut UiState,
     cfg: &mut Config,
     sender: &Sender<(Vec<Tile>, Image)>,
+    screen_width: f32,
+    screen_height: f32,
 ) {
-    egui::TopBottomPanel::top("top_panel").show(egui_ctx, |ui| {
+    egui::Panel::top("top_panel").show(ui, |ui| {
         ui.horizontal(|ui| {
             ui.menu_button("File", |ui| {
                 if ui.button("Open").clicked() {
@@ -76,14 +74,14 @@ pub fn egui_ui(
             });
         });
     });
-    ui_state.file_dia.update(egui_ctx);
+    ui_state.file_dia.update(ui);
     if let Some(path) = ui_state.file_dia.take_picked()
         && load_world(&path, world, &mut view.map_tex)
     {
         cfg.recent_files.use_(path);
     }
     if let Some(world_base) = &world.base {
-        egui::Window::new("World").show(egui_ctx, |ui| {
+        egui::Window::new("World").show(ui, |ui| {
             egui::ScrollArea::vertical().show(ui, |ui| {
                 ui.set_height(600.0);
                 ui.heading("Basic");
@@ -187,8 +185,8 @@ pub fn egui_ui(
                 &chest_name_fmt
             };
             egui::Window::new(label)
-                .id("chest_popup".into())
-                .show(egui_ctx, |ui| {
+                .id(egui::Id::unique("chest_popup"))
+                .show(ui, |ui| {
                     for item in &chest.items {
                         if item.id != 0 {
                             match world.item_id_map.name_by_id(item.id as u16) {
@@ -204,7 +202,7 @@ pub fn egui_ui(
         }
         egui::Window::new("Chests")
             .open(&mut ui_state.chests_window)
-            .show(egui_ctx, |ui| {
+            .show(ui, |ui| {
                 ui.add(
                     egui::TextEdit::singleline(&mut ui_state.chest_filter)
                         .hint_text("Item name or id"),
@@ -259,20 +257,20 @@ pub fn egui_ui(
                             .clicked()
                         {
                             ui_state.selected_chest = Some(i);
-                            center_on_chest(view, chest);
+                            center_on_chest(view, chest, screen_width, screen_height);
                         }
                     }
                 });
             });
     }
-    ui_state.egui_wants_pointer = egui_ctx.wants_pointer_input();
+    ui_state.egui_wants_pointer = ui.egui_wants_pointer_input();
 }
 
-fn center_on_chest(view: &mut ViewerState, chest: &Chest) {
+fn center_on_chest(view: &mut ViewerState, chest: &Chest, screen_width: f32, screen_height: f32) {
     let pix_pos = vec2(chest.x as f32, chest.y as f32).to_pix(view.scale);
     view.cam = -pix_pos;
-    view.cam.x += screen_width() / 2.;
-    view.cam.y += screen_height() / 2.;
+    view.cam.x += screen_width / 2.;
+    view.cam.y += screen_height / 2.;
     // "Center" on the chest rather than pointing at left top
     view.cam.x -= view.scale as f32;
     view.cam.y -= view.scale as f32;

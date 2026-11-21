@@ -1,7 +1,14 @@
 use {
     crate::{config::Config, ui::UiState},
-    egui_macroquad::{EguiMqInteg, macroquad},
-    macroquad::prelude::*,
+    egui_frogquad::{
+        EguiFrogquad,
+        frogquad::{
+            self, Color,
+            glam::{Vec2, vec2},
+            input::{KeyCode, MouseButton},
+            texture::{DrawTextureParams, FilterMode, Image, Texture2D},
+        },
+    },
     std::{fs::File, ops::Add, path::Path},
     terraria_strings::ItemIdMap,
     terraria_wld::{BaseHeader, Chest, Header, Tile},
@@ -52,51 +59,73 @@ impl Default for WorldState {
     }
 }
 
-#[macroquad::main("egui with macroquad")]
-async fn main() -> anyhow::Result<()> {
-    let mut cfg = Config::load_or_default()?;
-    prevent_quit();
-    let mut viewer = ViewerState::default();
-    let mut world = WorldState::default();
-    if cfg.load_most_recent
-        && let Some(most_recent) = cfg.recent_files.most_recent().cloned()
-        && load_world(&most_recent, &mut world, &mut viewer.map_tex)
-    {
-        cfg.recent_files.use_(most_recent);
+struct WldViewApp {
+    efrog: EguiFrogquad,
+    cfg: Config,
+    viewer: ViewerState,
+    world: WorldState,
+    ui_state: UiState,
+    receiver: std::sync::mpsc::Receiver<(Vec<Tile>, Image)>,
+    sender: std::sync::mpsc::Sender<(Vec<Tile>, Image)>,
+}
+
+impl WldViewApp {
+    fn new(fc: &mut frogquad::FrogCx) -> anyhow::Result<Self> {
+        let mut cfg = Config::load_or_default()?;
+        let mut viewer = ViewerState::default();
+        let mut world = WorldState::default();
+        if cfg.load_most_recent
+            && let Some(most_recent) = cfg.recent_files.most_recent().cloned()
+            && load_world(&most_recent, &mut world, &mut viewer.map_tex)
+        {
+            cfg.recent_files.use_(most_recent);
+        }
+        let (sender, receiver) = std::sync::mpsc::channel();
+        let mut ui_state = UiState::default();
+        if let Some(world_base) = &world.base
+            && cfg.load_tiles_at_start
+        {
+            let base_header = world_base.base_header.clone();
+            let header = world_base.header.clone();
+            let file = world_base.file.try_clone().unwrap();
+            let sender = sender.clone();
+            std::thread::spawn(move || {
+                let ret_val = load_tiles(&file, &base_header, &header);
+                sender.send(ret_val).unwrap();
+            });
+            ui_state.loading_tiles = true;
+        }
+        let efrog = EguiFrogquad::new(fc);
+        Ok(Self {
+            efrog,
+            cfg,
+            viewer,
+            world,
+            ui_state,
+            sender,
+            receiver,
+        })
     }
-    let (sender, receiver) = std::sync::mpsc::channel();
-    let mut ui_state = UiState::default();
-    if let Some(world_base) = &world.base
-        && cfg.load_tiles_at_start
-    {
-        let base_header = world_base.base_header.clone();
-        let header = world_base.header.clone();
-        let file = world_base.file.try_clone().unwrap();
-        let sender = sender.clone();
-        std::thread::spawn(move || {
-            let ret_val = load_tiles(&file, &base_header, &header);
-            sender.send(ret_val).unwrap();
-        });
-        ui_state.loading_tiles = true;
-    }
-    let mut egui_mq = EguiMqInteg::new();
-    loop {
-        clear_background(BLACK);
+}
+
+impl frogquad::App for WldViewApp {
+    fn update(&mut self, fc: &mut frogquad::FrogCx) {
+        fc.clear_background(Color::BLACK);
 
         // Process keys, mouse etc.
 
-        if let Some(world_base) = &mut world.base {
-            if let Some(tex) = &viewer.map_tex {
+        if let Some(world_base) = &mut self.world.base {
+            if let Some(tex) = &self.viewer.map_tex {
                 let header = &world_base.header;
-                draw_texture_ex(
+                fc.draw_texture_ex(
                     tex,
-                    viewer.cam.x,
-                    viewer.cam.y,
-                    WHITE,
+                    self.viewer.cam.x,
+                    self.viewer.cam.y,
+                    Color::WHITE,
                     DrawTextureParams {
                         dest_size: Some(vec2(
-                            header.width as f32 * viewer.scale as f32,
-                            header.height as f32 * viewer.scale as f32,
+                            header.width as f32 * self.viewer.scale as f32,
+                            header.height as f32 * self.viewer.scale as f32,
                         )),
                         source: None,
                         rotation: 0.0,
@@ -105,85 +134,88 @@ async fn main() -> anyhow::Result<()> {
                         pivot: None,
                     },
                 );
-            } else if let Ok((tiles_, img)) = receiver.try_recv() {
-                world.tiles = tiles_;
-                let tex = Texture2D::from_image(&img);
-                tex.set_filter(FilterMode::Nearest);
-                viewer.map_tex = Some(tex);
-                ui_state.loading_tiles = false;
+            } else if let Ok((tiles_, img)) = self.receiver.try_recv() {
+                self.world.tiles = tiles_;
+                let tex = Texture2D::from_image(fc, &img);
+                tex.set_filter(fc, FilterMode::Nearest);
+                self.viewer.map_tex = Some(tex);
+                self.ui_state.loading_tiles = false;
             }
         }
 
-        let mp = Vec2::from(mouse_position());
-        viewer.pointed_tile = mp.to_tile(viewer.scale) - viewer.cam.to_tile(viewer.scale);
-        ui_state.egui_wants_pointer = false;
+        let mp = Vec2::from(fc.mouse_position());
+        self.viewer.pointed_tile =
+            mp.to_tile(self.viewer.scale) - self.viewer.cam.to_tile(self.viewer.scale);
+        self.ui_state.egui_wants_pointer = false;
 
-        if cfg.draw_center_marker {
-            draw_line(
-                screen_width() / 2.,
+        if self.cfg.draw_center_marker {
+            fc.draw_line(
+                fc.screen_width() / 2.,
                 0.,
-                screen_width() / 2.,
-                screen_height(),
+                fc.screen_width() / 2.,
+                fc.screen_height(),
                 1.0,
-                RED,
+                Color::RED,
             );
-            draw_line(
+            fc.draw_line(
                 0.,
-                screen_height() / 2.,
-                screen_width(),
-                screen_height() / 2.,
+                fc.screen_height() / 2.,
+                fc.screen_width(),
+                fc.screen_height() / 2.,
                 1.0,
-                RED,
+                Color::RED,
             );
         }
 
-        if is_key_pressed(KeyCode::F12) {
-            ui_state.hide_ui ^= true;
+        if fc.is_key_pressed(KeyCode::F12) {
+            self.ui_state.hide_ui ^= true;
         }
 
-        if is_key_pressed(KeyCode::KpAdd) {
-            viewer.cam.x *= 2.;
-            viewer.cam.x -= screen_width() / 2.;
-            viewer.cam.y *= 2.;
-            viewer.cam.y -= screen_height() / 2.;
-            viewer.scale *= 2;
+        if fc.is_key_pressed(KeyCode::KpAdd) {
+            self.viewer.cam.x *= 2.;
+            self.viewer.cam.x -= fc.screen_width() / 2.;
+            self.viewer.cam.y *= 2.;
+            self.viewer.cam.y -= fc.screen_height() / 2.;
+            self.viewer.scale *= 2;
         }
 
-        if is_key_pressed(KeyCode::KpSubtract) && viewer.scale > 1 {
-            viewer.cam.x += screen_width() / 2.;
-            viewer.cam.x /= 2.;
-            viewer.cam.y += screen_height() / 2.;
-            viewer.cam.y /= 2.;
-            viewer.scale /= 2;
+        if fc.is_key_pressed(KeyCode::KpSubtract) && self.viewer.scale > 1 {
+            self.viewer.cam.x += fc.screen_width() / 2.;
+            self.viewer.cam.x /= 2.;
+            self.viewer.cam.y += fc.screen_height() / 2.;
+            self.viewer.cam.y /= 2.;
+            self.viewer.scale /= 2;
         }
-
-        if !ui_state.hide_ui {
-            egui_mq.ui(|_, egui_ctx| {
+        let (screen_width, screen_height) = (fc.screen_width(), fc.screen_height());
+        if !self.ui_state.hide_ui {
+            self.efrog.ui(fc, |_, ui| {
                 ui::egui_ui(
-                    egui_ctx,
-                    &mut world,
-                    &mut viewer,
-                    &mut ui_state,
-                    &mut cfg,
-                    &sender,
+                    ui,
+                    &mut self.world,
+                    &mut self.viewer,
+                    &mut self.ui_state,
+                    &mut self.cfg,
+                    &self.sender,
+                    screen_width,
+                    screen_height,
                 );
             });
-            egui_mq.draw();
+            self.efrog.draw(fc);
         }
 
-        if !ui_state.egui_wants_pointer && is_mouse_button_pressed(MouseButton::Left) {
-            ui_state.selected_chest = None;
-            if let Some(world_base) = &world.base {
+        if !self.ui_state.egui_wants_pointer && fc.is_mouse_button_pressed(MouseButton::Left) {
+            self.ui_state.selected_chest = None;
+            if let Some(world_base) = &self.world.base {
                 for (i, chest) in world_base.chests.iter().enumerate() {
                     if rect_contains_point(
                         chest.x,
                         chest.y,
                         2,
                         2,
-                        viewer.pointed_tile.x as u16,
-                        viewer.pointed_tile.y as u16,
+                        self.viewer.pointed_tile.x as u16,
+                        self.viewer.pointed_tile.y as u16,
                     ) {
-                        ui_state.selected_chest = Some(i);
+                        self.ui_state.selected_chest = Some(i);
                     }
                 }
             }
@@ -191,38 +223,37 @@ async fn main() -> anyhow::Result<()> {
 
         let speed = 16.0;
 
-        if is_key_down(KeyCode::Left) {
-            viewer.cam.x += speed;
+        if fc.is_key_down(KeyCode::Left) {
+            self.viewer.cam.x += speed;
         }
-        if is_key_down(KeyCode::Right) {
-            viewer.cam.x -= speed;
+        if fc.is_key_down(KeyCode::Right) {
+            self.viewer.cam.x -= speed;
         }
-        if is_key_down(KeyCode::Up) {
-            viewer.cam.y += speed;
+        if fc.is_key_down(KeyCode::Up) {
+            self.viewer.cam.y += speed;
         }
-        if is_key_down(KeyCode::Down) {
-            viewer.cam.y -= speed;
+        if fc.is_key_down(KeyCode::Down) {
+            self.viewer.cam.y -= speed;
         }
 
-        if let Some(world_base) = &world.base {
-            viewer.cam.x = clamp(
-                viewer.cam.x,
-                -(world_base.header.width as f32 * viewer.scale as f32) + screen_width() / 2.,
-                screen_width() / 2.,
+        if let Some(world_base) = &self.world.base {
+            self.viewer.cam.x = f32::clamp(
+                self.viewer.cam.x,
+                -(world_base.header.width as f32 * self.viewer.scale as f32)
+                    + fc.screen_width() / 2.,
+                fc.screen_width() / 2.,
             );
-            viewer.cam.y = clamp(
-                viewer.cam.y,
-                -(world_base.header.height as f32 * viewer.scale as f32) + screen_height() / 2.,
-                screen_height() / 2.,
+            self.viewer.cam.y = f32::clamp(
+                self.viewer.cam.y,
+                -(world_base.header.height as f32 * self.viewer.scale as f32)
+                    + fc.screen_height() / 2.,
+                fc.screen_height() / 2.,
             );
         }
 
-        if is_quit_requested() {
-            cfg.save()?;
-            return Ok(());
+        if fc.is_quit_requested() {
+            self.cfg.save().unwrap();
         }
-
-        next_frame().await;
     }
 }
 
@@ -286,42 +317,42 @@ fn load_world(path: &Path, world: &mut WorldState, map_tex: &mut Option<Texture2
 fn tile_color(tile: &Tile) -> Option<Color> {
     if let Some(id) = tile.front {
         Some(match id {
-            0 => BROWN,
-            1 => GRAY,
-            2 => GREEN,
+            0 => Color::BROWN,
+            1 => Color::GRAY,
+            2 => Color::GREEN,
             3 => Color::from_rgba(204, 255, 0, 255),
-            4 => RED,
-            5 => BROWN,
+            4 => Color::RED,
+            5 => Color::BROWN,
             // Iron/copper/etc
-            6..=9 => ORANGE,
+            6..=9 => Color::ORANGE,
             // Platform
-            19 => BROWN,
+            19 => Color::BROWN,
             // Pots
             28 => Color::from_rgba(144, 69, 0, 255),
             // Wood
-            30 => BROWN,
+            30 => Color::BROWN,
             // Clay
             40 => Color::from_rgba(154, 73, 40, 255),
             // Dungeon brick
             43 | 44 => Color::from_rgba(131, 0, 178, 255),
             // Chest
-            21 | 467 => YELLOW,
+            21 | 467 => Color::YELLOW,
             // Cobweb
             51 => Color::from_rgba(188, 175, 174, 255),
             // Vine
-            52 => GREEN,
+            52 => Color::GREEN,
             // Sand
             53 | 112 | 116 | 234 => Color::from_rgba(234, 213, 0, 255),
             // Ash
-            57 => DARKGRAY,
+            57 => Color::DARKGRAY,
             // Hellstone
             58 => Color::from_rgba(168, 53, 17, 255),
             // Mud
             59 => Color::from_rgba(57, 36, 10, 255),
             // Jungle grass
-            60 => DARKGREEN,
+            60 => Color::DARKGREEN,
             // Jungle vine
-            62 => DARKGREEN,
+            62 => Color::DARKGREEN,
             // Glowing mushroom stuff
             70..=72 => Color::from_rgba(56, 230, 255, 255),
             // Hallowed grass
@@ -331,7 +362,7 @@ fn tile_color(tile: &Tile) -> Option<Color> {
             // Pearlstone
             117 => Color::from_rgba(162, 117, 137, 255),
             // Wooden beam
-            124 => BROWN,
+            124 => Color::BROWN,
             // Snow
             147 => Color::from_rgba(202, 234, 252, 255),
             // Ice
@@ -341,9 +372,9 @@ fn tile_color(tile: &Tile) -> Option<Color> {
             // Stones, tiny rubble, etc
             185 => Color::from_rgba(153, 125, 99, 255),
             // Living wood
-            191 => BROWN,
+            191 => Color::BROWN,
             // Living leaf
-            192 => GREEN,
+            192 => Color::GREEN,
             // Crimson grass
             199 => Color::from_rgba(220, 89, 69, 255),
             // Crimstone
@@ -351,7 +382,7 @@ fn tile_color(tile: &Tile) -> Option<Color> {
             // Crimson vines
             205 => Color::from_rgba(176, 53, 30, 255),
             // Hive
-            225 => ORANGE,
+            225 => Color::ORANGE,
             // Temple bricks
             226 => Color::from_rgba(250, 95, 0, 255),
             // Marble
@@ -359,33 +390,33 @@ fn tile_color(tile: &Tile) -> Option<Color> {
             // Granite
             368 => Color::from_rgba(15, 18, 34, 255),
             // Living mahogany
-            383 => BROWN,
+            383 => Color::BROWN,
             // Living mahogany leaf
-            384 => GREEN,
+            384 => Color::GREEN,
             // Sandstone
             396 => Color::from_rgba(197, 116, 0, 255),
             // Hardened sand
             397 => Color::from_rgba(192, 160, 19, 255),
             // Desert fossil
-            404 => BROWN,
-            _ => MAGENTA,
+            404 => Color::BROWN,
+            _ => Color::MAGENTA,
         })
     } else if let Some(liq) = tile.liquid {
         Some(match liq {
-            terraria_wld::Liquid::Water => BLUE,
-            terraria_wld::Liquid::Lava => RED,
+            terraria_wld::Liquid::Water => Color::BLUE,
+            terraria_wld::Liquid::Lava => Color::RED,
             terraria_wld::Liquid::Honey => Color::from_rgba(216, 167, 0, 255),
         })
     } else {
         tile.back.map(|back| match back {
             // Stone
-            1 => DARKGRAY,
+            1 => Color::DARKGRAY,
             // Dirt
-            2 => DARKBROWN,
+            2 => Color::DARKBROWN,
             // Wood
-            4 | 78 => DARKBROWN,
+            4 | 78 => Color::DARKBROWN,
             // Dungeon
-            7 | 8 | 9 | 17 | 18 | 19 | 94..=105 => DARKPURPLE,
+            7 | 8 | 9 | 17 | 18 | 19 | 94..=105 => Color::DARKPURPLE,
             // Crimson
             83 => Color::from_rgba(59, 8, 8, 255),
             _ => Color::from_rgba(180, 0, 180, 255),
@@ -413,4 +444,8 @@ impl MqVec2Ext for Vec2 {
             y: f32::floor(self.y * scale),
         }
     }
+}
+
+fn main() {
+    frogquad::start("Wldview", |fc| WldViewApp::new(fc).unwrap());
 }
